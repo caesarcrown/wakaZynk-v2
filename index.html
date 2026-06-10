@@ -482,28 +482,30 @@ function submitOrderFinal() {
 }
 
 function triggerTelegramSend() {
-    // 1. Проверяем, зафиксировались ли данные заказа
     if (!globalOrderData) {
         alert("Ошибка: Данные заказа не найдены в памяти!");
         return;
     }
 
-    // 2. Проверяем, что мини-апп запущен именно внутри Telegram
     if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+
+        // Хак: Telegram подставляет query_id ТОЛЬКО тогда, когда приложение открыто через Inline-кнопку или Menu.
+        // Если query_id есть, значит sendData() гарантированно заблокирован самим Телеграмом.
+        if (tg.initDataUnsafe && tg.initDataUnsafe.query_id) {
+            alert("⚠️ Ограничение Telegram на ПК:\n\nВы открыли магазин через кнопку 'Menu' или старое сообщение. В таком режиме Telegram блокирует отправку данных.\n\nПожалуйста, закройте магазин, отправьте боту команду /start и зайдите через БОЛЬШУЮ КНОПКУ в самом внизу чата!");
+            return;
+        }
+
         try {
-            // Переводим данные в строку для отправки боту
-            const dataString = JSON.stringify(globalOrderData);
-            
-            // Отправляем боту (это действие САМО автоматически закроет окно магазина!)
-            window.Telegram.WebApp.sendData(dataString);
-            
+            // Если зашли через правильную кнопку клавиатуры — отправляем данные
+            tg.sendData(JSON.stringify(globalOrderData));
         } catch (error) {
-            alert("Ошибка при отправке через Telegram API: " + error.message);
+            alert("Ошибка Telegram API: " + error.message);
         }
     } else {
-        // На случай, если ты тестируешь просто в браузере на ПК (вне ТГ)
-        alert("Браузерный тест! Боту улетели бы вот эти данные:\n" + JSON.stringify(globalOrderData));
-        
+        // На случай тестов в обычном браузере (Chrome / Safari)
+        alert("Браузерный тест! Данные заказа:\n" + JSON.stringify(globalOrderData));
         const modal = document.getElementById('success-modal');
         if (modal) modal.style.display = 'none';
     }

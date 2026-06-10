@@ -239,30 +239,36 @@
         }
 
         // --- ЛОГИКА ОТПРАВКИ ЗАКАЗА В БОТ ---
+        
         function submitOrderFinal() {
-            const phone = document.getElementById('checkout-phone').value.trim();
-            const address = document.getElementById('checkout-address').value.trim();
-            const finalTotal = document.getElementById('summary-total').innerText;
-            const itemsText = cart.map(i => `${i.name} (${i.flavor} — ${i.qty}шт)`).join(', ');
+    // ТЕСТ 1: Проверяем, нажимается ли кнопка вообще
+    alert("Кнопка нажата, функция submitOrderFinal запустилась!");
 
-            if (!address) {
-                alert('Введите адрес доставки!');
-                return;
-            }
+    const phone = document.getElementById('checkout-phone')?.value || "Не указан";
+    const address = document.getElementById('checkout-address')?.value || "Не указан";
+    const total = document.getElementById('summary-total')?.innerText || "0";
 
-            const orderData = {
-                phone: phone,
-                address: address,
-                items: itemsText,
-                total: finalTotal,
-                date: document.getElementById('checkout-date-box').innerText,
-                time: document.getElementById('checkout-time-box').innerText
-            };
+    const orderData = {
+        phone: phone,
+        address: address,
+        items: "Тест: WAKA 20000 x1", // Пока запишем текстом для проверки
+        total: total
+    };
 
-            // Отправка в бота
-            tg.sendData(JSON.stringify(orderData));
-            tg.close();
-        }
+    // ТЕСТ 2: Проверяем, собрались ли данные
+    alert("Данные собраны: " + JSON.stringify(orderData));
+
+    try {
+        // Отправка в Телеграм
+        window.Telegram.WebApp.sendData(JSON.stringify(orderData));
+        
+        // ТЕСТ 3: Успешный вызов функции
+        alert("Телеграм принял команду sendData! Закрываем окно.");
+        window.Telegram.WebApp.close(); 
+    } catch (error) {
+        alert("Критическая ошибка отправки: " + error.message);
+    }
+}
 
         function switchTab(tabName) {
             document.getElementById('tab-catalog').classList.add('hidden');

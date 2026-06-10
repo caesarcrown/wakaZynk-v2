@@ -370,8 +370,8 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const ALLOWED_ADMIN_IDS = [6466044615, 8729059527];
-        const PRODUCTS_STORAGE_KEY = 'waka_products';
+        const ALLOWED_ADMIN_IDS = ['6466044615', '8729059527'];
+        const PRODUCTS_KEY = 'waka_products';
 
         const DEFAULT_PRODUCTS = [
             {
@@ -405,7 +405,7 @@
 
         function loadProducts() {
             try {
-                const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+                const saved = localStorage.getItem(PRODUCTS_KEY);
                 if (saved) {
                     const parsed = JSON.parse(saved);
                     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -417,19 +417,18 @@
         }
 
         function saveProducts() {
-            localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+            localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
         }
 
         function getTelegramUserId() {
             const id = tg?.initDataUnsafe?.user?.id;
-            if (id === undefined || id === null) return null;
-            return Number(id);
+            if (id !== undefined && id !== null) return String(id);
+            return null;
         }
 
         function isAdminUser() {
             const userId = getTelegramUserId();
-            if (userId === null || isNaN(userId)) return false;
-            return ALLOWED_ADMIN_IDS.some(adminId => adminId === userId);
+            return userId !== null && ALLOWED_ADMIN_IDS.includes(userId);
         }
 
         function isAdminPanelOpen() {
@@ -439,19 +438,28 @@
         function initAdminButton() {
             const btn = document.getElementById('btn-admin');
             if (!btn) return;
-            btn.classList.toggle('admin-visible', isAdminUser());
+            const isAdmin = isAdminUser();
+            btn.classList.toggle('admin-visible', isAdmin);
+            btn.style.pointerEvents = isAdmin ? 'auto' : 'none';
+        }
+
+        function setupAdminAccess() {
+            initAdminButton();
+            setTimeout(initAdminButton, 400);
+            setTimeout(initAdminButton, 1200);
         }
 
         function openAdminPanel() {
-            if (!isAdminUser()) return;
             const panel = document.getElementById('admin-panel');
             if (!panel) return;
             panel.classList.add('admin-open');
+            document.body.style.overflow = 'hidden';
             renderAdminPanel();
         }
 
         function closeAdminPanel() {
             document.getElementById('admin-panel')?.classList.remove('admin-open');
+            document.body.style.overflow = '';
         }
 
         function renderAdminPanel() {
@@ -552,9 +560,7 @@
             saveProducts();
             renderProducts();
             refreshOpenDetails();
-            if (isAdminPanelOpen()) {
-                renderAdminPanel();
-            }
+            if (isAdminPanelOpen()) renderAdminPanel();
         }
 
         function updateProductName(pIndex, newName) {
@@ -630,7 +636,7 @@
             const total = document.getElementById('summary-total')?.innerText || '0';
             const itemsText = cart.map(i => `${i.name} x${i.qty} (${i.flavor})`).join(', ');
 
-            globalOrderData = { phone, address, items: itemsText || 'Пусто', total };
+            globalOrderData = { action: 'order', phone, address, items: itemsText || 'Пусто', total };
 
             const successModal = document.getElementById('success-modal');
             if (successModal) {
@@ -1010,12 +1016,14 @@
                 document.getElementById('terms-modal').style.display = 'none';
             }
             document.getElementById('user-balance').innerText = currentBalance;
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+
+            if (tg.initDataUnsafe?.user) {
                 const user = tg.initDataUnsafe.user;
                 document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
                 document.getElementById('user-id').innerText = 'ID: ' + user.id;
             }
-            initAdminButton();
+
+            setupAdminAccess();
             drawWheel();
             renderProducts();
             updateCartCount();
@@ -1023,7 +1031,8 @@
         }
 
         bindAdminEvents();
-        tg.ready(initApp);
+        if (typeof tg.ready === 'function') tg.ready(initApp);
+        else initApp();
         window.addEventListener('load', initApp);
     </script>
 </body>

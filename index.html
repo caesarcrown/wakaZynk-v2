@@ -102,6 +102,21 @@
             background: #ffffff; color: black; font-weight: bold; font-size: 16px; cursor: pointer;
         }
         .btn-confirm:active { transform: scale(0.98); }
+        #btn-admin { display: none; }
+        #btn-admin.admin-visible {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #admin-panel {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #09090b;
+            overflow-y: auto;
+        }
+        #admin-panel.admin-open { display: block; }
     </style>
 </head>
 <body class="select-none overflow-x-hidden pb-24">
@@ -325,7 +340,7 @@
         <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
         <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
         <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
-        <button onclick="openAdminPanel()" id="btn-admin" class="hidden flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
+        <button id="btn-admin" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
     </nav>
 
     <div id="success-modal" class="modal-overlay" style="display: none;">
@@ -341,11 +356,11 @@
     </div>
 
     <!-- Админ-панель -->
-    <div id="admin-panel" class="hidden fixed inset-0 bg-zinc-950 z-[999] overflow-y-auto">
+    <div id="admin-panel">
         <div class="p-5 max-w-md mx-auto pb-10">
             <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
                 <h2 class="text-2xl font-bold">Админка</h2>
-                <button onclick="closeAdminPanel()" class="text-3xl text-zinc-400 hover:text-white leading-none">&times;</button>
+                <button id="btn-admin-close" class="text-3xl text-zinc-400 hover:text-white leading-none">&times;</button>
             </div>
             <div id="admin-content"></div>
         </div>
@@ -405,24 +420,38 @@
             localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
         }
 
+        function getTelegramUserId() {
+            const id = tg?.initDataUnsafe?.user?.id;
+            if (id === undefined || id === null) return null;
+            return Number(id);
+        }
+
         function isAdminUser() {
-            const userId = tg.initDataUnsafe?.user?.id;
-            return userId && ALLOWED_ADMIN_IDS.includes(Number(userId));
+            const userId = getTelegramUserId();
+            if (userId === null || isNaN(userId)) return false;
+            return ALLOWED_ADMIN_IDS.some(adminId => adminId === userId);
+        }
+
+        function isAdminPanelOpen() {
+            return document.getElementById('admin-panel')?.classList.contains('admin-open');
         }
 
         function initAdminButton() {
             const btn = document.getElementById('btn-admin');
-            if (btn) btn.classList.toggle('hidden', !isAdminUser());
+            if (!btn) return;
+            btn.classList.toggle('admin-visible', isAdminUser());
         }
 
         function openAdminPanel() {
             if (!isAdminUser()) return;
-            document.getElementById('admin-panel').classList.remove('hidden');
+            const panel = document.getElementById('admin-panel');
+            if (!panel) return;
+            panel.classList.add('admin-open');
             renderAdminPanel();
         }
 
         function closeAdminPanel() {
-            document.getElementById('admin-panel').classList.add('hidden');
+            document.getElementById('admin-panel')?.classList.remove('admin-open');
         }
 
         function renderAdminPanel() {
@@ -432,44 +461,45 @@
             let html = `
                 <div class="flex justify-between items-center mb-5">
                     <h3 class="font-bold text-lg">Товары</h3>
-                    <button onclick="addNewProduct()" class="bg-purple-600 px-4 py-2 rounded-xl text-sm font-bold">+ Товар</button>
+                    <button type="button" data-action="add-product" class="bg-purple-600 px-4 py-2 rounded-xl text-sm font-bold">+ Товар</button>
                 </div>`;
 
             products.forEach((product, pIndex) => {
+                const flavors = Array.isArray(product.flavors) ? product.flavors : [];
                 html += `
                     <div class="bg-zinc-900 rounded-2xl p-4 mb-5">
                         <div class="space-y-3 mb-4">
                             <input type="text" value="${escapeHtml(product.name)}"
-                                   onchange="updateProductName(${pIndex}, this.value)"
+                                   data-action="product-name" data-pindex="${pIndex}"
                                    class="w-full bg-zinc-800 text-lg font-bold rounded-xl px-3 py-2 outline-none">
                             <div class="flex gap-2 items-center">
                                 <input type="number" value="${product.price}"
-                                       onchange="updateProductPrice(${pIndex}, this.value)"
+                                       data-action="product-price" data-pindex="${pIndex}"
                                        class="w-28 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none">
                                 <span class="text-xs text-gray-400">сом</span>
                             </div>
                             <input type="text" value="${escapeHtml(product.img || '')}" placeholder="Ссылка на картинку"
-                                   onchange="updateProductImage(${pIndex}, this.value)"
+                                   data-action="product-image" data-pindex="${pIndex}"
                                    class="w-full bg-zinc-800 text-xs px-3 py-2 rounded-xl outline-none text-gray-300">
                         </div>
                         <div class="space-y-2">`;
 
-                product.flavors.forEach((flavor, fIndex) => {
+                flavors.forEach((flavor, fIndex) => {
                     html += `
                         <div class="flex items-center gap-2 bg-zinc-950 p-3 rounded-xl">
                             <input type="text" value="${escapeHtml(flavor.name)}"
-                                   onchange="updateFlavorName(${pIndex}, ${fIndex}, this.value)"
+                                   data-action="flavor-name" data-pindex="${pIndex}" data-findex="${fIndex}"
                                    class="flex-1 bg-transparent outline-none text-sm font-medium">
                             <input type="number" value="${flavor.stock}" min="0"
-                                   onchange="updateFlavorStock(${pIndex}, ${fIndex}, this.value)"
+                                   data-action="flavor-stock" data-pindex="${pIndex}" data-findex="${fIndex}"
                                    class="w-16 bg-zinc-800 text-center rounded-lg py-1.5 outline-none text-sm">
-                            <button onclick="deleteFlavor(${pIndex}, ${fIndex})" class="text-red-500 text-xl px-1">&times;</button>
+                            <button type="button" data-action="delete-flavor" data-pindex="${pIndex}" data-findex="${fIndex}" class="text-red-500 text-xl px-1">&times;</button>
                         </div>`;
                 });
 
                 html += `
                         </div>
-                        <button onclick="addFlavor(${pIndex})"
+                        <button type="button" data-action="add-flavor" data-pindex="${pIndex}"
                                 class="w-full py-2.5 mt-3 border border-dashed border-purple-400 text-purple-400 rounded-xl text-sm font-bold">
                             + Добавить вкус
                         </button>
@@ -477,6 +507,37 @@
             });
 
             content.innerHTML = html;
+        }
+
+        function bindAdminEvents() {
+            document.getElementById('btn-admin')?.addEventListener('click', openAdminPanel);
+            document.getElementById('btn-admin-close')?.addEventListener('click', closeAdminPanel);
+
+            document.getElementById('admin-content')?.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                const action = btn.dataset.action;
+                const pIndex = parseInt(btn.dataset.pindex, 10);
+                const fIndex = parseInt(btn.dataset.findex, 10);
+
+                if (action === 'add-product') addNewProduct();
+                if (action === 'add-flavor') addFlavor(pIndex);
+                if (action === 'delete-flavor') deleteFlavor(pIndex, fIndex);
+            });
+
+            document.getElementById('admin-content')?.addEventListener('change', (e) => {
+                const el = e.target.closest('[data-action]');
+                if (!el) return;
+                const action = el.dataset.action;
+                const pIndex = parseInt(el.dataset.pindex, 10);
+                const fIndex = parseInt(el.dataset.findex, 10);
+
+                if (action === 'product-name') updateProductName(pIndex, el.value);
+                if (action === 'product-price') updateProductPrice(pIndex, el.value);
+                if (action === 'product-image') updateProductImage(pIndex, el.value);
+                if (action === 'flavor-name') updateFlavorName(pIndex, fIndex, el.value);
+                if (action === 'flavor-stock') updateFlavorStock(pIndex, fIndex, el.value);
+            });
         }
 
         function escapeHtml(str) {
@@ -491,7 +552,7 @@
             saveProducts();
             renderProducts();
             refreshOpenDetails();
-            if (!document.getElementById('admin-panel').classList.contains('hidden')) {
+            if (isAdminPanelOpen()) {
                 renderAdminPanel();
             }
         }
@@ -944,7 +1005,7 @@
             }, 5000);
         }
 
-        window.addEventListener('load', () => {
+        function initApp() {
             if (localStorage.getItem('terms-accepted') === 'true') {
                 document.getElementById('terms-modal').style.display = 'none';
             }
@@ -959,7 +1020,11 @@
             renderProducts();
             updateCartCount();
             checkWheelTimer();
-        });
+        }
+
+        bindAdminEvents();
+        tg.ready(initApp);
+        window.addEventListener('load', initApp);
     </script>
 </body>
 </html>

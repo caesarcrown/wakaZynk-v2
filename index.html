@@ -370,8 +370,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const ALLOWED_ADMIN_IDS = ['6466044615', '8729059527'];
-        const PRODUCTS_KEY = 'waka_products';
+        const ADMIN_IDS = new Set(['6466044615', '8729059527']);
 
         const DEFAULT_PRODUCTS = [
             {
@@ -395,7 +394,7 @@
             }
         ];
 
-        let products = loadProducts();
+        let products = [];
         let currentBalance = parseInt(localStorage.getItem('waka_balance')) || 0;
         let cart = JSON.parse(localStorage.getItem('waka_cart')) || [];
         let currentProduct = null;
@@ -403,58 +402,65 @@
         let currentDetailQty = 1;
         let globalOrderData = null;
 
-        function loadProducts() {
+        function loadProductsFromBot() {
+            const b64 = new URLSearchParams(window.location.search).get('catalog');
+            if (!b64) return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
             try {
-                const saved = localStorage.getItem(PRODUCTS_KEY);
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                }
+                const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
+                const binary = atob(normalized);
+                const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+                const json = new TextDecoder().decode(bytes);
+                const data = JSON.parse(json);
+                if (Array.isArray(data) && data.length > 0) return data;
             } catch (e) {
-                console.error('Ошибка загрузки товаров:', e);
+                console.error('Ошибка чтения каталога от бота:', e);
             }
             return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
         }
 
-        function saveProducts() {
-            localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
-        }
-
-        function getTelegramUserId() {
-            const id = tg?.initDataUnsafe?.user?.id;
-            if (id !== undefined && id !== null) return String(id);
-            return null;
-        }
-
         function isAdminUser() {
-            const userId = getTelegramUserId();
-            return userId !== null && ALLOWED_ADMIN_IDS.includes(userId);
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('is_admin') === '1') return true;
+            const id = tg?.initDataUnsafe?.user?.id;
+            return id != null && ADMIN_IDS.has(String(id));
         }
 
         function isAdminPanelOpen() {
             return document.getElementById('admin-panel')?.classList.contains('admin-open');
         }
 
-        function initAdminButton() {
+        function updateAdminUI() {
             const btn = document.getElementById('btn-admin');
             if (!btn) return;
-            const isAdmin = isAdminUser();
-            btn.classList.toggle('admin-visible', isAdmin);
-            btn.style.pointerEvents = isAdmin ? 'auto' : 'none';
-        }
-
-        function setupAdminAccess() {
-            initAdminButton();
-            setTimeout(initAdminButton, 400);
-            setTimeout(initAdminButton, 1200);
+            const admin = isAdminUser();
+            btn.style.display = admin ? 'flex' : 'none';
+            btn.classList.toggle('admin-visible', admin);
         }
 
         function openAdminPanel() {
+            if (!isAdminUser()) return;
             const panel = document.getElementById('admin-panel');
             if (!panel) return;
             panel.classList.add('admin-open');
             document.body.style.overflow = 'hidden';
             renderAdminPanel();
+        }
+
+        function saveAdminChanges() {
+            if (!isAdminUser()) {
+                alert('Нет доступа.');
+                return;
+            }
+            if (!confirm('Сохранить изменения в боте? Приложение закроется — это нормально.')) return;
+            if (tg.initDataUnsafe?.query_id) {
+                alert('Откройте магазин через кнопку «Открыть магазин» внизу чата.');
+                return;
+            }
+            try {
+                tg.sendData(JSON.stringify({ action: 'save_catalog', products: products }));
+            } catch (e) {
+                alert('Ошибка отправки: ' + e.message);
+            }
         }
 
         function closeAdminPanel() {
@@ -470,7 +476,11 @@
                 <div class="flex justify-between items-center mb-5">
                     <h3 class="font-bold text-lg">Товары</h3>
                     <button type="button" data-action="add-product" class="bg-purple-600 px-4 py-2 rounded-xl text-sm font-bold">+ Товар</button>
-                </div>`;
+                </div>
+                <button type="button" data-action="save-changes"
+                        class="w-full py-3 mb-5 bg-emerald-600 rounded-xl font-bold text-sm">
+                    💾 Сохранить изменения
+                </button>`;
 
             products.forEach((product, pIndex) => {
                 const flavors = Array.isArray(product.flavors) ? product.flavors : [];
@@ -531,6 +541,7 @@
                 if (action === 'add-product') addNewProduct();
                 if (action === 'add-flavor') addFlavor(pIndex);
                 if (action === 'delete-flavor') deleteFlavor(pIndex, fIndex);
+                if (action === 'save-changes') saveAdminChanges();
             });
 
             document.getElementById('admin-content')?.addEventListener('change', (e) => {
@@ -557,7 +568,6 @@
         }
 
         function syncAfterProductChange() {
-            saveProducts();
             renderProducts();
             refreshOpenDetails();
             if (isAdminPanelOpen()) renderAdminPanel();
@@ -680,7 +690,8 @@
         }
 
         function getTotalStock(product) {
-            return product.flavors.reduce((sum, f) => sum + f.stock, 0);
+            const flavors = Array.isArray(product.flavors) ? product.flavors : [];
+            return flavors.reduce((sum, f) => sum + (f.stock || 0), 0);
         }
 
         function renderProducts() {
@@ -737,7 +748,7 @@
             const flavorsGrid = document.getElementById('flavors-grid');
             if (!flavorsGrid) return;
             flavorsGrid.innerHTML = '';
-            currentProduct.flavors.forEach((f, index) => {
+            (currentProduct.flavors || []).forEach((f, index) => {
                 const btn = document.createElement('button');
                 btn.id = 'flavor-btn-' + index;
                 btn.className = 'flavor-btn bg-[#171e2c] border border-gray-800 rounded-xl p-3 text-center flex flex-col justify-center items-center active:scale-95 transition-all cursor-pointer';
@@ -1015,6 +1026,8 @@
             if (localStorage.getItem('terms-accepted') === 'true') {
                 document.getElementById('terms-modal').style.display = 'none';
             }
+
+            products = loadProductsFromBot();
             document.getElementById('user-balance').innerText = currentBalance;
 
             if (tg.initDataUnsafe?.user) {
@@ -1023,7 +1036,7 @@
                 document.getElementById('user-id').innerText = 'ID: ' + user.id;
             }
 
-            setupAdminAccess();
+            updateAdminUI();
             drawWheel();
             renderProducts();
             updateCartCount();
@@ -1031,9 +1044,11 @@
         }
 
         bindAdminEvents();
-        if (typeof tg.ready === 'function') tg.ready(initApp);
-        else initApp();
-        window.addEventListener('load', initApp);
+        tg.ready(() => {
+            initApp();
+            setTimeout(updateAdminUI, 300);
+            setTimeout(updateAdminUI, 1000);
+        });
     </script>
 </body>
 </html>

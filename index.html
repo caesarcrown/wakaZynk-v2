@@ -8,85 +8,42 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-      /* Стили для окна успешного заказа */
-.success-content {
-    background: #121520; /* Твой фирменный тёмный фон */
-    width: 85%;
-    max-width: 360px;
-    border-radius: 24px;
-    padding: 35px 24px;
-    text-align: center;
-    color: white;
-    font-family: sans-serif;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.success-icon-circle {
-    width: 90px;
-    height: 90px;
-    background: #10b981; /* Приятный зелёный цвет */
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 auto 24px;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-}
-
-.checkmark {
-    color: white;
-    font-size: 45px;
-    font-weight: bold;
-}
-
-.success-content h2 {
-    font-size: 24px;
-    margin: 0 0 12px 0;
-    font-weight: 700;
-}
-
-.success-content p {
-    font-size: 14px;
-    color: #94a3b8;
-    margin: 0 0 30px 0;
-    line-height: 1.5;
-}
-
-.success-buttons {
-    display: flex;
-    gap: 12px;
-}
-
-.btn-secondary {
-    flex: 1;
-    background: #1e293b;
-    color: #94a3b8;
-    border: none;
-    padding: 14px;
-    border-radius: 16px;
-    font-weight: bold;
-    font-size: 15px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.btn-primary {
-    flex: 1;
-    background: #6366f1; /* Фиолетово-синяя кнопка как на фото */
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 16px;
-    font-weight: bold;
-    font-size: 15px;
-    cursor: pointer;
-    transition: 0.2s;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.btn-secondary:active, .btn-primary:active {
-    transform: scale(0.97);
-}
+        .success-content {
+            background: #121520;
+            width: 85%;
+            max-width: 360px;
+            border-radius: 24px;
+            padding: 35px 24px;
+            text-align: center;
+            color: white;
+            font-family: sans-serif;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .success-icon-circle {
+            width: 90px;
+            height: 90px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        .checkmark { color: white; font-size: 45px; font-weight: bold; }
+        .success-content h2 { font-size: 24px; margin: 0 0 12px 0; font-weight: 700; }
+        .success-content p { font-size: 14px; color: #94a3b8; margin: 0 0 30px 0; line-height: 1.5; }
+        .success-buttons { display: flex; gap: 12px; }
+        .btn-secondary {
+            flex: 1; background: #1e293b; color: #94a3b8; border: none;
+            padding: 14px; border-radius: 16px; font-weight: bold; font-size: 15px; cursor: pointer;
+        }
+        .btn-primary {
+            flex: 1; background: #6366f1; color: white; border: none;
+            padding: 14px; border-radius: 16px; font-weight: bold; font-size: 15px; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .btn-secondary:active, .btn-primary:active { transform: scale(0.97); }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: #0b0e14;
@@ -94,135 +51,105 @@
             -webkit-tap-highlight-color: transparent;
         }
         .active-tab { color: #a855f7; }
-        .bottom-sheet {
-            transition: transform 0.3s ease-out;
-            transform: translateY(100%);
-        }
+        .bottom-sheet { transition: transform 0.3s ease-out; transform: translateY(100%); }
         .bottom-sheet.active { transform: translateY(0); }
-        .flavor-btn.selected {
-            border-color: #a855f7;
-            background-color: rgba(168, 85, 247, 0.15);
+        .flavor-btn.selected { border-color: #a855f7; background-color: rgba(168, 85, 247, 0.15); }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10000;
         }
-        /* Стили для окна условий */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    display: flex; justify-content: center; align-items: center;
-    z-index: 10000;
-}
-
-.terms-content {
-    background: #121520; /* Темный фон как на фото */
-    width: 90%; max-width: 400px;
-    border-radius: 24px; padding: 24px;
-    color: white; font-family: sans-serif;
-}
-
-.terms-header {
-    display: flex; align-items: center; gap: 15px; margin-bottom: 25px;
-}
-
-.warning-icon { color: #facc15; font-size: 32px; }
-.terms-header h3 { margin: 0; font-size: 18px; }
-.terms-header p { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
-
-.terms-list { display: flex; flex-direction: column; gap: 12px; }
-
-.terms-item {
-    display: flex; gap: 15px; padding: 16px; border-radius: 16px;
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.terms-item i { font-size: 20px; margin-top: 3px; }
-.terms-item strong { display: block; font-size: 14px; margin-bottom: 4px; }
-.terms-item p { margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.4; }
-
-.item-red i { color: #ef4444; }
-.item-blue i { color: #3b82f6; }
-.item-gold i { color: #f59e0b; }
-
-.terms-footer { margin-top: 25px; }
-
-.toggle-container {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 20px; padding: 0 5px;
-}
-
-.toggle-container span { font-size: 14px; color: white; }
-
-/* Стили переключателя (Toggle) */
-.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #334155; transition: .4s; border-radius: 24px;
-}
-.slider:before {
-    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
-    background-color: white; transition: .4s; border-radius: 50%;
-}
-input:checked + .slider { background-color: #3b82f6; }
-input:checked + .slider:before { transform: translateX(20px); }
-
-.btn-confirm {
-    width: 100%; border: none; padding: 16px; border-radius: 16px;
-    background: #ffffff; color: black; font-weight: bold; font-size: 16px;
-    cursor: pointer; transition: 0.2s;
-}
-
-.btn-confirm:active { transform: scale(0.98); }
+        .terms-content {
+            background: #121520; width: 90%; max-width: 400px;
+            border-radius: 24px; padding: 24px; color: white; font-family: sans-serif;
+        }
+        .terms-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .warning-icon { color: #facc15; font-size: 32px; }
+        .terms-header h3 { margin: 0; font-size: 18px; }
+        .terms-header p { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
+        .terms-list { display: flex; flex-direction: column; gap: 12px; }
+        .terms-item {
+            display: flex; gap: 15px; padding: 16px; border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .terms-item i { font-size: 20px; margin-top: 3px; }
+        .terms-item strong { display: block; font-size: 14px; margin-bottom: 4px; }
+        .terms-item p { margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.4; }
+        .item-red i { color: #ef4444; }
+        .item-blue i { color: #3b82f6; }
+        .item-gold i { color: #f59e0b; }
+        .terms-footer { margin-top: 25px; }
+        .toggle-container {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding: 0 5px;
+        }
+        .toggle-container span { font-size: 14px; color: white; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .btn-confirm {
+            width: 100%; border: none; padding: 16px; border-radius: 16px;
+            background: #ffffff; color: black; font-weight: bold; font-size: 16px; cursor: pointer;
+        }
+        .btn-confirm:active { transform: scale(0.98); }
     </style>
 </head>
 <body class="select-none overflow-x-hidden pb-24">
-  <div id="terms-modal" class="modal-overlay">
-    <div class="terms-content">
-        <div class="terms-header">
-            <i class="fa-solid fa-triangle-exclamation warning-icon"></i>
-            <div>
-                <h3>Важные условия покупки</h3>
-                <p>Подтвердите перед входом в магазин</p>
-            </div>
-        </div>
 
-        <div class="terms-list">
-            <div class="terms-item item-red">
-                <i class="fa-solid fa-circle-xmark"></i>
+    <div id="terms-modal" class="modal-overlay">
+        <div class="terms-content">
+            <div class="terms-header">
+                <i class="fa-solid fa-triangle-exclamation warning-icon"></i>
                 <div>
-                    <strong>Возврата денег нет</strong>
-                    <p>После покупки возврат денежных средств не производится.</p>
+                    <h3>Важные условия покупки</h3>
+                    <p>Подтвердите перед входом в магазин</p>
                 </div>
             </div>
-
-            <div class="terms-item item-blue">
-                <i class="fa-solid fa-circle-check"></i>
-                <div>
-                    <strong>Замена только при браке</strong>
-                    <p>Замена возможна только при подтвержденном браке товара.</p>
+            <div class="terms-list">
+                <div class="terms-item item-red">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <div>
+                        <strong>Возврата денег нет</strong>
+                        <p>После покупки возврат денежных средств не производится.</p>
+                    </div>
+                </div>
+                <div class="terms-item item-blue">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div>
+                        <strong>Замена только при браке</strong>
+                        <p>Замена возможна только при подтвержденном браке товара.</p>
+                    </div>
+                </div>
+                <div class="terms-item item-gold">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <div>
+                        <strong>Покупка только от 18+</strong>
+                        <p>Нажимая "Хорошо", вы подтверждаете, что вам есть 18 лет.</p>
+                    </div>
                 </div>
             </div>
-
-            <div class="terms-item item-gold">
-                <i class="fa-solid fa-circle-exclamation"></i>
-                <div>
-                    <strong>Покупка только от 18+</strong>
-                    <p>Нажимая "Хорошо", вы подтверждаете, что вам есть 18 лет.</p>
+            <div class="terms-footer">
+                <div class="toggle-container">
+                    <span>Не показывать снова</span>
+                    <label class="switch">
+                        <input type="checkbox" id="dont-show-again">
+                        <span class="slider round"></span>
+                    </label>
                 </div>
+                <button class="btn-confirm" onclick="closeTermsModal()">Хорошо</button>
             </div>
-        </div>
-
-        <div class="terms-footer">
-            <div class="toggle-container">
-                <span>Не показывать снова</span>
-                <label class="switch">
-                    <input type="checkbox" id="dont-show-again">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <button class="btn-confirm" onclick="closeTermsModal()">Хорошо</button>
         </div>
     </div>
-</div>
 
     <header class="p-4 flex items-center justify-between border-b border-gray-900 bg-[#0f131c] sticky top-0 z-30">
         <div class="flex items-center space-x-3">
@@ -258,24 +185,22 @@ input:checked + .slider:before { transform: translateX(20px); }
     <div id="details-back" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end justify-center" onclick="closeDetails(event)">
         <div id="details-sheet" class="bottom-sheet bg-[#131924] w-full max-w-md rounded-t-3xl border-t border-gray-800 p-6 space-y-5 overflow-y-auto max-h-[90vh]" onclick="event.stopPropagation()">
             <div class="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-2" onclick="closeDetailsForce()"></div>
-            
             <div class="flex justify-between items-start">
                 <div>
                     <h2 id="detail-name" class="text-2xl font-black tracking-wide"></h2>
                     <div class="flex items-center gap-3 mt-1">
-                        <span id="detail-price" class="text-2xl font-black text-white"></span> <span class="text-sm text-gray-400">сом</span>
+                        <span id="detail-price" class="text-2xl font-black text-white"></span>
+                        <span class="text-sm text-gray-400">сом</span>
                         <span id="detail-old-price" class="text-sm line-through text-gray-500"></span>
                     </div>
                     <div id="detail-status" class="text-[11px] font-bold text-emerald-400 mt-1"></div>
                 </div>
                 <button onclick="closeDetailsForce()" class="w-8 h-8 rounded-full bg-[#1e2638] flex items-center justify-center text-gray-400">&times;</button>
             </div>
-
             <div class="space-y-2">
                 <h3 class="text-sm font-bold text-gray-300">Выберите вкус</h3>
                 <div id="flavors-grid" class="grid grid-cols-2 gap-2"></div>
             </div>
-
             <div class="flex items-center justify-between bg-[#0b0e14] p-4 rounded-2xl border border-gray-900">
                 <span class="text-sm font-medium text-gray-400">Количество</span>
                 <div class="flex items-center space-x-4">
@@ -284,7 +209,6 @@ input:checked + .slider:before { transform: translateX(20px); }
                     <button onclick="changeDetailQty(1)" class="w-8 h-8 rounded-lg bg-[#171e2c] flex items-center justify-center font-bold text-lg active:scale-90">+</button>
                 </div>
             </div>
-
             <div class="flex gap-2 pt-2">
                 <button id="detail-buy-btn" onclick="addSelectedToCart()" class="w-full bg-purple-600 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-4 rounded-2xl cursor-pointer text-center transition-all">
                     <i class="fa-solid fa-shopping-cart mr-2"></i>В корзину
@@ -296,33 +220,25 @@ input:checked + .slider:before { transform: translateX(20px); }
     <div id="checkout-back" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end justify-center" onclick="closeCheckout(event)">
         <div id="checkout-sheet" class="bottom-sheet bg-[#131924] w-full max-w-md rounded-t-3xl border-t border-gray-800 p-6 space-y-5 overflow-y-auto max-h-[95vh]" onclick="event.stopPropagation()">
             <div class="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-2" onclick="closeCheckoutForce()"></div>
-            
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-bold tracking-wide">Оформление заказа</h2>
                 <button onclick="closeCheckoutForce()" class="w-8 h-8 rounded-full bg-[#1e2638] flex items-center justify-center text-gray-400">&times;</button>
             </div>
-
             <div class="space-y-1">
                 <input type="tel" id="checkout-phone" value="+996" class="w-full bg-[#121824] border border-pink-500/40 rounded-xl py-3.5 px-4 text-base font-medium text-white focus:outline-none focus:border-purple-500 transition-all">
             </div>
-
             <div class="space-y-1.5">
                 <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-location-dot"></i> Адрес доставки</label>
                 <input type="text" id="checkout-address" placeholder="Введите адрес" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white focus:outline-none focus:border-purple-500">
             </div>
-
             <div class="space-y-1.5">
                 <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-calendar-days"></i> Дата</label>
-                <div id="checkout-date-box" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white font-medium">
-                    </div>
+                <div id="checkout-date-box" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white font-medium"></div>
             </div>
-
             <div class="space-y-1.5">
                 <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-clock"></i> Время</label>
-                <div id="checkout-time-box" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white font-medium text-center">
-                    </div>
+                <div id="checkout-time-box" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white font-medium text-center"></div>
             </div>
-
             <div class="bg-[#0b0e14] p-4 rounded-2xl border border-gray-900 space-y-2.5">
                 <div class="flex justify-between text-sm text-gray-400">
                     <span>Товары</span>
@@ -338,7 +254,6 @@ input:checked + .slider:before { transform: translateX(20px); }
                     <span class="text-xl font-black text-white"><span id="summary-total">0</span> сом</span>
                 </div>
             </div>
-
             <button onclick="submitOrderFinal()" class="w-full bg-[#273043] hover:bg-purple-600 text-gray-300 hover:text-white font-bold py-4 rounded-2xl cursor-pointer text-center transition-all flex items-center justify-center gap-2">
                 <i class="fa-solid fa-check"></i> Подтвердить заказ
             </button>
@@ -358,17 +273,14 @@ input:checked + .slider:before { transform: translateX(20px); }
             <h2 class="text-2xl font-bold">Колесо Фортуны</h2>
             <p class="text-xs text-gray-400 mt-1">Испытай удачу раз в сутки и выигрывай бонусы на баланс!</p>
         </div>
-        
         <div class="relative w-76 h-76 mx-auto my-4 flex items-center justify-center">
             <div class="absolute top-0 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[25px] border-t-purple-500 z-30 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.5)]"></div>
             <canvas id="wheelCanvas" width="290" height="290" class="rounded-full shadow-[0_0_30px_rgba(168,85,247,0.25)] border-4 border-[#171e2c] transition-transform duration-5000 ease-out"></canvas>
             <div class="absolute w-14 h-14 bg-[#0b0e14] border-2 border-purple-500 rounded-full text-white font-black flex items-center justify-center text-[10px]">WAKA</div>
         </div>
-        
         <button onclick="spinWheel()" id="spin-btn" class="w-full max-w-sm bg-gradient-to-r from-purple-600 to-indigo-600 font-bold py-4 rounded-2xl shadow-[0_4px_15px_rgba(168,85,247,0.3)] disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all cursor-pointer">
             ⚡ Крутить!
         </button>
-
         <div class="bg-[#121824] p-4 rounded-3xl border border-gray-900 text-left space-y-3">
             <h3 class="text-sm font-bold text-gray-400 px-1">Возможные призы:</h3>
             <div class="space-y-3">
@@ -409,131 +321,51 @@ input:checked + .slider:before { transform: translateX(20px); }
         </div>
     </main>
 
-    <nav class="fixed bottom-0 inset-x-0 bg- /95 backdrop-blur-md border-t border-gray-900 flex justify-around py-3 text-gray-500 text- font-semibold z-40">
-    <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
-    <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
-    <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
-    <button onclick="openAdminLogin()" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
-</nav>
+    <nav class="fixed bottom-0 inset-x-0 bg-[#0f131c]/95 backdrop-blur-md border-t border-gray-900 flex justify-around py-3 text-gray-500 text-xs font-semibold z-40">
+        <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
+        <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
+        <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
+        <button onclick="openAdminPanel()" id="btn-admin" class="hidden flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
+    </nav>
+
+    <div id="success-modal" class="modal-overlay" style="display: none;">
+        <div class="success-content">
+            <div class="success-icon-circle"><span class="checkmark">✓</span></div>
+            <h2>Заказ оформлен!</h2>
+            <p>Детали и инструкция по оплате отправлены в чат с ботом</p>
+            <div class="success-buttons">
+                <button class="btn-secondary" onclick="location.reload()">В магазин</button>
+                <button class="btn-primary" onclick="triggerTelegramSend()">Открыть бота</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Админ-панель -->
+    <div id="admin-panel" class="hidden fixed inset-0 bg-zinc-950 z-[999] overflow-y-auto">
+        <div class="p-5 max-w-md mx-auto pb-10">
+            <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
+                <h2 class="text-2xl font-bold">Админка</h2>
+                <button onclick="closeAdminPanel()" class="text-3xl text-zinc-400 hover:text-white leading-none">&times;</button>
+            </div>
+            <div id="admin-content"></div>
+        </div>
+    </div>
 
     <script>
-      // Функция закрытия окна
-function closeTermsModal() {
-    const modal = document.getElementById('terms-modal');
-    const checkbox = document.getElementById('dont-show-again');
-    
-    // Если галочка стоит, запоминаем это в памяти телефона
-    if (checkbox.checked) {
-        localStorage.setItem('terms-accepted', 'true');
-    }
-    
-    modal.style.display = 'none';
-}
-
-// Проверка при загрузке страницы
-window.addEventListener('load', function() {
-    const isAccepted = localStorage.getItem('terms-accepted');
-    if (isAccepted === 'true') {
-        document.getElementById('terms-modal').style.display = 'none';
-    }
-});
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let currentBalance = parseInt(localStorage.getItem('waka_balance')) || 0;
-        let cart = JSON.parse(localStorage.getItem('waka_cart')) || [];
-        
-        let currentProduct = null;
-        let selectedFlavor = null;
-        let currentDetailQty = 1;
+        const ALLOWED_ADMIN_IDS = [6466044615, 8729059527];
+        const PRODUCTS_STORAGE_KEY = 'waka_products';
 
-        document.getElementById('user-balance').innerText = currentBalance;
-
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const user = tg.initDataUnsafe.user;
-            document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-            document.getElementById('user-id').innerText = 'ID: ' + user.id;
-        }
-
-
-let globalOrderData = null;
-
-function submitOrderFinal() {
-    // 1. Собираем данные из полей ввода
-    const phone = document.getElementById('checkout-phone')?.value || "Не указан";
-    const address = document.getElementById('checkout-address')?.value || "Не указан";
-    const total = document.getElementById('summary-total')?.innerText || "0";
-
-    // Формируем объект данных заказа
-    globalOrderData = {
-        phone: phone,
-        address: address,
-        items: "WAKA 20000 x1 (Клубника Малина)", // Сюда потом привяжешь динамическую корзину
-        total: total
-    };
-
-    // 2. Показываем красивое окно "Заказ оформлен!"
-    const successModal = document.getElementById('success-modal');
-    if (successModal) {
-        successModal.style.display = 'flex'; // Включаем флекс-контейнер для центрирования
-    } else {
-        // Если вдруг окна нет, шлём сразу
-        triggerTelegramSend();
-    }
-}
-
-function triggerTelegramSend() {
-    if (!globalOrderData) {
-        alert("Ошибка: Данные заказа не найдены в памяти!");
-        return;
-    }
-
-    if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-
-        // Хак: Telegram подставляет query_id ТОЛЬКО тогда, когда приложение открыто через Inline-кнопку или Menu.
-        // Если query_id есть, значит sendData() гарантированно заблокирован самим Телеграмом.
-        if (tg.initDataUnsafe && tg.initDataUnsafe.query_id) {
-            alert("⚠️ Ограничение Telegram на ПК:\n\nВы открыли магазин через кнопку 'Menu' или старое сообщение. В таком режиме Telegram блокирует отправку данных.\n\nПожалуйста, закройте магазин, отправьте боту команду /start и зайдите через БОЛЬШУЮ КНОПКУ в самом внизу чата!");
-            return;
-        }
-
-        try {
-            // Если зашли через правильную кнопку клавиатуры — отправляем данные
-            tg.sendData(JSON.stringify(globalOrderData));
-        } catch (error) {
-            alert("Ошибка Telegram API: " + error.message);
-        }
-    } else {
-        // На случай тестов в обычном браузере (Chrome / Safari)
-        alert("Браузерный тест! Данные заказа:\n" + JSON.stringify(globalOrderData));
-        const modal = document.getElementById('success-modal');
-        if (modal) modal.style.display = 'none';
-    }
-}
-
-        function switchTab(tabName) {
-            document.getElementById('tab-catalog').classList.add('hidden');
-            document.getElementById('tab-bonuses').classList.add('hidden');
-            document.getElementById('tab-profile').classList.add('hidden');
-            document.getElementById('btn-catalog').classList.remove('active-tab');
-            document.getElementById('btn-bonuses').classList.remove('active-tab');
-            document.getElementById('btn-profile').classList.remove('active-tab');
-
-            document.getElementById('tab-' + tabName).classList.remove('hidden');
-            document.getElementById('btn-' + tabName).classList.add('active-tab');
-            
-            if (tabName === 'bonuses') checkWheelTimer();
-        }
-
-        const products = [
-            { 
-                id: 1, 
-                name: "ET 35000", 
-                price: 2300, 
-                oldPrice: 2500, 
-                discount: "-8%", 
-                status: "instock", 
+        const DEFAULT_PRODUCTS = [
+            {
+                id: 1,
+                name: "ET 35000",
+                price: 2300,
+                oldPrice: 2500,
+                discount: "-8%",
+                status: "instock",
                 img: "https://picsum.photos/id/20/300/300",
                 flavors: [
                     { name: "Мята", stock: 4 },
@@ -548,6 +380,238 @@ function triggerTelegramSend() {
             }
         ];
 
+        let products = loadProducts();
+        let currentBalance = parseInt(localStorage.getItem('waka_balance')) || 0;
+        let cart = JSON.parse(localStorage.getItem('waka_cart')) || [];
+        let currentProduct = null;
+        let selectedFlavor = null;
+        let currentDetailQty = 1;
+        let globalOrderData = null;
+
+        function loadProducts() {
+            try {
+                const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                }
+            } catch (e) {
+                console.error('Ошибка загрузки товаров:', e);
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+        }
+
+        function saveProducts() {
+            localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+        }
+
+        function isAdminUser() {
+            const userId = tg.initDataUnsafe?.user?.id;
+            return userId && ALLOWED_ADMIN_IDS.includes(Number(userId));
+        }
+
+        function initAdminButton() {
+            const btn = document.getElementById('btn-admin');
+            if (btn) btn.classList.toggle('hidden', !isAdminUser());
+        }
+
+        function openAdminPanel() {
+            if (!isAdminUser()) return;
+            document.getElementById('admin-panel').classList.remove('hidden');
+            renderAdminPanel();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('admin-panel').classList.add('hidden');
+        }
+
+        function renderAdminPanel() {
+            const content = document.getElementById('admin-content');
+            if (!content) return;
+
+            let html = `
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">Товары</h3>
+                    <button onclick="addNewProduct()" class="bg-purple-600 px-4 py-2 rounded-xl text-sm font-bold">+ Товар</button>
+                </div>`;
+
+            products.forEach((product, pIndex) => {
+                html += `
+                    <div class="bg-zinc-900 rounded-2xl p-4 mb-5">
+                        <div class="space-y-3 mb-4">
+                            <input type="text" value="${escapeHtml(product.name)}"
+                                   onchange="updateProductName(${pIndex}, this.value)"
+                                   class="w-full bg-zinc-800 text-lg font-bold rounded-xl px-3 py-2 outline-none">
+                            <div class="flex gap-2 items-center">
+                                <input type="number" value="${product.price}"
+                                       onchange="updateProductPrice(${pIndex}, this.value)"
+                                       class="w-28 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none">
+                                <span class="text-xs text-gray-400">сом</span>
+                            </div>
+                            <input type="text" value="${escapeHtml(product.img || '')}" placeholder="Ссылка на картинку"
+                                   onchange="updateProductImage(${pIndex}, this.value)"
+                                   class="w-full bg-zinc-800 text-xs px-3 py-2 rounded-xl outline-none text-gray-300">
+                        </div>
+                        <div class="space-y-2">`;
+
+                product.flavors.forEach((flavor, fIndex) => {
+                    html += `
+                        <div class="flex items-center gap-2 bg-zinc-950 p-3 rounded-xl">
+                            <input type="text" value="${escapeHtml(flavor.name)}"
+                                   onchange="updateFlavorName(${pIndex}, ${fIndex}, this.value)"
+                                   class="flex-1 bg-transparent outline-none text-sm font-medium">
+                            <input type="number" value="${flavor.stock}" min="0"
+                                   onchange="updateFlavorStock(${pIndex}, ${fIndex}, this.value)"
+                                   class="w-16 bg-zinc-800 text-center rounded-lg py-1.5 outline-none text-sm">
+                            <button onclick="deleteFlavor(${pIndex}, ${fIndex})" class="text-red-500 text-xl px-1">&times;</button>
+                        </div>`;
+                });
+
+                html += `
+                        </div>
+                        <button onclick="addFlavor(${pIndex})"
+                                class="w-full py-2.5 mt-3 border border-dashed border-purple-400 text-purple-400 rounded-xl text-sm font-bold">
+                            + Добавить вкус
+                        </button>
+                    </div>`;
+            });
+
+            content.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function syncAfterProductChange() {
+            saveProducts();
+            renderProducts();
+            refreshOpenDetails();
+            if (!document.getElementById('admin-panel').classList.contains('hidden')) {
+                renderAdminPanel();
+            }
+        }
+
+        function updateProductName(pIndex, newName) {
+            products[pIndex].name = newName.trim() || products[pIndex].name;
+            syncAfterProductChange();
+        }
+
+        function updateProductPrice(pIndex, newPrice) {
+            const price = parseInt(newPrice, 10);
+            if (!isNaN(price) && price > 0) products[pIndex].price = price;
+            syncAfterProductChange();
+        }
+
+        function updateProductImage(pIndex, newImg) {
+            products[pIndex].img = newImg.trim();
+            syncAfterProductChange();
+        }
+
+        function updateFlavorName(pIndex, fIndex, newName) {
+            products[pIndex].flavors[fIndex].name = newName.trim() || products[pIndex].flavors[fIndex].name;
+            syncAfterProductChange();
+        }
+
+        function updateFlavorStock(pIndex, fIndex, newStock) {
+            const stock = parseInt(newStock, 10);
+            products[pIndex].flavors[fIndex].stock = isNaN(stock) ? 0 : Math.max(0, stock);
+            syncAfterProductChange();
+        }
+
+        function deleteFlavor(pIndex, fIndex) {
+            if (!confirm('Удалить этот вкус?')) return;
+            products[pIndex].flavors.splice(fIndex, 1);
+            syncAfterProductChange();
+        }
+
+        function addFlavor(pIndex) {
+            const name = prompt('Название нового вкуса:');
+            if (!name || !name.trim()) return;
+            const stockStr = prompt('Количество в наличии:', '10');
+            const stock = parseInt(stockStr, 10);
+            products[pIndex].flavors.push({ name: name.trim(), stock: isNaN(stock) ? 0 : stock });
+            syncAfterProductChange();
+        }
+
+        function addNewProduct() {
+            const name = prompt('Название нового товара:');
+            if (!name || !name.trim()) return;
+            const priceStr = prompt('Цена товара (сом):', '2300');
+            const price = parseInt(priceStr, 10) || 2300;
+            products.push({
+                id: Date.now(),
+                name: name.trim(),
+                price: price,
+                oldPrice: price + 300,
+                discount: '-10%',
+                status: 'instock',
+                img: 'https://picsum.photos/id/' + (Math.floor(Math.random() * 100) + 10) + '/300/300',
+                flavors: []
+            });
+            syncAfterProductChange();
+        }
+
+        function closeTermsModal() {
+            const modal = document.getElementById('terms-modal');
+            const checkbox = document.getElementById('dont-show-again');
+            if (checkbox.checked) localStorage.setItem('terms-accepted', 'true');
+            modal.style.display = 'none';
+        }
+
+        function submitOrderFinal() {
+            const phone = document.getElementById('checkout-phone')?.value || 'Не указан';
+            const address = document.getElementById('checkout-address')?.value || 'Не указан';
+            const total = document.getElementById('summary-total')?.innerText || '0';
+            const itemsText = cart.map(i => `${i.name} x${i.qty} (${i.flavor})`).join(', ');
+
+            globalOrderData = { phone, address, items: itemsText || 'Пусто', total };
+
+            const successModal = document.getElementById('success-modal');
+            if (successModal) {
+                successModal.style.display = 'flex';
+            } else {
+                triggerTelegramSend();
+            }
+        }
+
+        function triggerTelegramSend() {
+            if (!globalOrderData) {
+                alert('Ошибка: Данные заказа не найдены в памяти!');
+                return;
+            }
+            if (window.Telegram && window.Telegram.WebApp) {
+                const webApp = window.Telegram.WebApp;
+                if (webApp.initDataUnsafe && webApp.initDataUnsafe.query_id) {
+                    alert("⚠️ Ограничение Telegram на ПК:\n\nВы открыли магазин через кнопку 'Menu' или старое сообщение. В таком режиме Telegram блокирует отправку данных.\n\nПожалуйста, закройте магазин, отправьте боту команду /start и зайдите через БОЛЬШУЮ КНОПКУ в самом внизу чата!");
+                    return;
+                }
+                try {
+                    webApp.sendData(JSON.stringify(globalOrderData));
+                } catch (error) {
+                    alert('Ошибка Telegram API: ' + error.message);
+                }
+            } else {
+                alert('Браузерный тест! Данные заказа:\n' + JSON.stringify(globalOrderData));
+                const modal = document.getElementById('success-modal');
+                if (modal) modal.style.display = 'none';
+            }
+        }
+
+        function switchTab(tabName) {
+            ['catalog', 'bonuses', 'profile'].forEach(t => {
+                document.getElementById('tab-' + t).classList.add('hidden');
+                document.getElementById('btn-' + t).classList.remove('active-tab');
+            });
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            document.getElementById('btn-' + tabName).classList.add('active-tab');
+            if (tabName === 'bonuses') checkWheelTimer();
+        }
+
         function getTotalStock(product) {
             return product.flavors.reduce((sum, f) => sum + f.stock, 0);
         }
@@ -556,32 +620,66 @@ function triggerTelegramSend() {
             const grid = document.getElementById('catalog-grid');
             if (!grid) return;
             grid.innerHTML = '';
-            document.getElementById('product-count').innerText = `${products.length} товара`;
+
+            const count = products.length;
+            const word = count === 1 ? 'товар' : (count >= 2 && count <= 4 ? 'товара' : 'товаров');
+            document.getElementById('product-count').innerText = `${count} ${word}`;
 
             products.forEach(p => {
                 const totalStock = getTotalStock(p);
-                grid.innerHTML += `
-                    <div class="bg-[#121824] rounded-2xl border border-gray-900 overflow-hidden relative flex flex-col cursor-pointer" onclick="openDetails(${p.id})">
-                        <span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg z-10">${p.discount}</span>
-                        <span class="absolute top-2 right-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded-lg z-10">В наличии</span>
-                        <div class="w-full aspect-square bg-[#171e2c] flex items-center justify-center p-4">
-                            <img src="${p.img}" alt="${p.name}" class="rounded-xl object-cover max-h-full">
+                const card = document.createElement('div');
+                card.className = 'bg-[#121824] rounded-2xl border border-gray-900 overflow-hidden relative flex flex-col cursor-pointer';
+                card.onclick = () => openDetails(p.id);
+                card.innerHTML = `
+                    <span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg z-10">${p.discount || ''}</span>
+                    <span class="absolute top-2 right-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded-lg z-10">В наличии</span>
+                    <div class="w-full aspect-square bg-[#171e2c] flex items-center justify-center p-4">
+                        <img src="${p.img}" alt="${escapeHtml(p.name)}" class="rounded-xl object-cover max-h-full">
+                    </div>
+                    <div class="p-3 flex-1 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-sm">${escapeHtml(p.name)}</h3>
+                            <p class="text-[10px] text-gray-400 mt-1">📦 Всего: ${totalStock} шт.</p>
                         </div>
-                        <div class="p-3 flex-1 flex flex-col justify-between space-y-3">
-                            <div>
-                                <h3 class="font-bold text-sm">${p.name}</h3>
-                                <p class="text-[10px] text-gray-400 mt-1">📦 Всего: ${totalStock} шт.</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-baseline space-x-0.5">
+                                <span class="text-base font-black">${p.price}</span>
+                                <span class="text-[9px] text-gray-400">сом</span>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-baseline space-x-0.5">
-                                    <span class="text-base font-black">${p.price}</span>
-                                    <span class="text-[9px] text-gray-400">сом</span>
-                                </div>
-                                <button onclick="event.stopPropagation(); openDetails(${p.id})" class="bg-purple-600 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-90">Выбрать</button>
-                            </div>
+                            <button class="bg-purple-600 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-90">Выбрать</button>
                         </div>
                     </div>`;
+                card.querySelector('button').onclick = (e) => { e.stopPropagation(); openDetails(p.id); };
+                grid.appendChild(card);
             });
+        }
+
+        function refreshOpenDetails() {
+            if (!currentProduct) return;
+            const updated = products.find(p => p.id === currentProduct.id);
+            if (!updated) return;
+            currentProduct = updated;
+            document.getElementById('detail-name').innerText = currentProduct.name;
+            document.getElementById('detail-price').innerText = currentProduct.price;
+            if (document.getElementById('detail-old-price')) {
+                document.getElementById('detail-old-price').innerText = (currentProduct.oldPrice || '') + ' сом';
+            }
+            const totalStock = getTotalStock(currentProduct);
+            document.getElementById('detail-status').innerText = `🟢 В наличии: ${totalStock} шт.`;
+
+            const flavorsGrid = document.getElementById('flavors-grid');
+            if (!flavorsGrid) return;
+            flavorsGrid.innerHTML = '';
+            currentProduct.flavors.forEach((f, index) => {
+                const btn = document.createElement('button');
+                btn.id = 'flavor-btn-' + index;
+                btn.className = 'flavor-btn bg-[#171e2c] border border-gray-800 rounded-xl p-3 text-center flex flex-col justify-center items-center active:scale-95 transition-all cursor-pointer';
+                btn.innerHTML = `<span class="text-sm font-bold text-white">${escapeHtml(f.name)}</span><span class="text-[10px] text-gray-400 mt-0.5">${f.stock} шт.</span>`;
+                btn.onclick = () => selectFlavor(f.name, index, f.stock);
+                if (selectedFlavor && selectedFlavor.name === f.name) btn.classList.add('selected');
+                flavorsGrid.appendChild(btn);
+            });
+            updateBuyButtonState();
         }
 
         function openDetails(id) {
@@ -591,49 +689,30 @@ function triggerTelegramSend() {
             selectedFlavor = null;
             currentDetailQty = 1;
             document.getElementById('detail-qty').innerText = currentDetailQty;
-            document.getElementById('detail-name').innerText = currentProduct.name;
-            document.getElementById('detail-price').innerText = currentProduct.price;
-            if (document.getElementById('detail-old-price')) {
-                document.getElementById('detail-old-price').innerText = currentProduct.oldPrice + " сом";
-            }
-            
-            const totalStock = getTotalStock(currentProduct);
-            document.getElementById('detail-status').innerText = `🟢 В наличии: ${totalStock} шт.`;
+            refreshOpenDetails();
 
-            const flavorsGrid = document.getElementById('flavors-grid');
-            if (flavorsGrid) {
-                flavorsGrid.innerHTML = '';
-                currentProduct.flavors.forEach((f, index) => {
-                    flavorsGrid.innerHTML += `
-                        <button id="flavor-btn-${index}" onclick="selectFlavor('${f.name}', ${index}, ${f.stock})" class="flavor-btn bg-[#171e2c] border border-gray-800 rounded-xl p-3 text-center flex flex-col justify-center items-center active:scale-95 transition-all cursor-pointer">
-                            <span class="text-sm font-bold text-white">${f.name}</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5">${f.stock} шт.</span>
-                        </button>`;
-                });
-            }
-            updateBuyButtonState();
             document.getElementById('details-back').classList.remove('hidden');
-            setTimeout(() => { document.getElementById('details-sheet').classList.add('active'); }, 10);
+            setTimeout(() => document.getElementById('details-sheet').classList.add('active'), 10);
         }
 
         function selectFlavor(name, index, stock) {
             if (stock <= 0) return;
-            selectedFlavor = { name: name, stock: stock };
+            selectedFlavor = { name, stock };
             currentDetailQty = 1;
             document.getElementById('detail-qty').innerText = currentDetailQty;
-
             document.querySelectorAll('.flavor-btn').forEach(btn => btn.classList.remove('selected'));
-            const selectedBtn = document.getElementById(`flavor-btn-${index}`);
+            const selectedBtn = document.getElementById('flavor-btn-' + index);
             if (selectedBtn) selectedBtn.classList.add('selected');
             updateBuyButtonState();
         }
 
         function changeDetailQty(amount) {
             if (!selectedFlavor) return;
-            let newQty = currentDetailQty + amount;
+            const newQty = currentDetailQty + amount;
             if (newQty >= 1 && newQty <= selectedFlavor.stock) {
                 currentDetailQty = newQty;
                 document.getElementById('detail-qty').innerText = currentDetailQty;
+                updateBuyButtonState();
             }
         }
 
@@ -642,10 +721,10 @@ function triggerTelegramSend() {
             if (!btn) return;
             if (selectedFlavor) {
                 btn.disabled = false;
-                btn.innerText = `Добавить в корзину (${currentDetailQty} шт.)`;
+                btn.innerHTML = `<i class="fa-solid fa-shopping-cart mr-2"></i>Добавить в корзину (${currentDetailQty} шт.)`;
             } else {
                 btn.disabled = true;
-                btn.innerText = `Выберите вкус`;
+                btn.innerHTML = 'Выберите вкус';
             }
         }
 
@@ -653,21 +732,25 @@ function triggerTelegramSend() {
             if (!currentProduct || !selectedFlavor) return;
             const existingItem = cart.find(item => item.id === currentProduct.id && item.flavor === selectedFlavor.name);
             if (existingItem) {
-                if (existingItem.qty + currentDetailQty <= selectedFlavor.stock) {
-                    existingItem.qty += currentDetailQty;
-                } else { existingItem.qty = selectedFlavor.stock; }
+                existingItem.qty = Math.min(existingItem.qty + currentDetailQty, selectedFlavor.stock);
             } else {
-                cart.push({ id: currentProduct.id, name: currentProduct.name, price: currentProduct.price, flavor: selectedFlavor.name, qty: currentDetailQty });
+                cart.push({
+                    id: currentProduct.id,
+                    name: currentProduct.name,
+                    price: currentProduct.price,
+                    flavor: selectedFlavor.name,
+                    qty: currentDetailQty
+                });
             }
             localStorage.setItem('waka_cart', JSON.stringify(cart));
             updateCartCount();
             closeDetailsForce();
-            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
 
         function closeDetailsForce() {
             document.getElementById('details-sheet').classList.remove('active');
-            setTimeout(() => { document.getElementById('details-back').classList.add('hidden'); }, 300);
+            setTimeout(() => document.getElementById('details-back').classList.add('hidden'), 300);
         }
 
         function closeDetails(event) {
@@ -693,8 +776,8 @@ function triggerTelegramSend() {
                     container.innerHTML += `
                         <div class="flex justify-between items-center bg-[#1a2232] p-3 rounded-2xl border border-gray-800">
                             <div>
-                                <span class="text-sm font-bold block">${item.name}</span>
-                                <span class="text-xs text-purple-400">Вкус: ${item.flavor} (${item.qty} шт.)</span>
+                                <span class="text-sm font-bold block">${escapeHtml(item.name)}</span>
+                                <span class="text-xs text-purple-400">Вкус: ${escapeHtml(item.flavor)} (${item.qty} шт.)</span>
                             </div>
                             <div class="flex items-center gap-3">
                                 <span class="text-sm font-black text-purple-400">${itemCost} с.</span>
@@ -704,23 +787,27 @@ function triggerTelegramSend() {
                 });
                 document.getElementById('cart-total').innerText = total;
                 modal.classList.remove('hidden');
-            } else { modal.classList.add('hidden'); }
+            } else {
+                modal.classList.add('hidden');
+            }
         }
 
         function removeFromCart(idx) {
             cart.splice(idx, 1);
             localStorage.setItem('waka_cart', JSON.stringify(cart));
-            updateCartCount(); toggleCart(); toggleCart();
+            updateCartCount();
+            toggleCart();
+            toggleCart();
         }
 
         function openOrderCheckout() {
             if (!cart.length) return;
             document.getElementById('cart-modal').classList.add('hidden');
 
-            let subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            let discount = currentBalance; 
-            if (discount > subtotal) discount = subtotal; 
-            let finalTotal = subtotal - discount;
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            let discount = currentBalance;
+            if (discount > subtotal) discount = subtotal;
+            const finalTotal = subtotal - discount;
 
             document.getElementById('summary-subtotal').innerText = subtotal;
             document.getElementById('summary-discount').innerText = discount;
@@ -729,21 +816,20 @@ function triggerTelegramSend() {
             const now = new Date();
             const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
             document.getElementById('checkout-date-box').innerText = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} г.`;
-            
+
             let hours = now.getHours();
             const minutes = now.getMinutes().toString().padStart(2, '0');
             const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; 
+            hours = hours % 12 || 12;
             document.getElementById('checkout-time-box').innerText = `${hours}:${minutes} ${ampm}`;
 
             document.getElementById('checkout-back').classList.remove('hidden');
-            setTimeout(() => { document.getElementById('checkout-sheet').classList.add('active'); }, 10);
+            setTimeout(() => document.getElementById('checkout-sheet').classList.add('active'), 10);
         }
 
         function closeCheckoutForce() {
             document.getElementById('checkout-sheet').classList.remove('active');
-            setTimeout(() => { document.getElementById('checkout-back').classList.add('hidden'); }, 300);
+            setTimeout(() => document.getElementById('checkout-back').classList.add('hidden'), 300);
         }
 
         function closeCheckout(event) {
@@ -753,28 +839,39 @@ function triggerTelegramSend() {
         const canvas = document.getElementById('wheelCanvas');
         const ctx = canvas.getContext('2d');
         const prizes = [
-            { text: "50 сом", value: 50, color: "#1d1b3a", weight: 65 },
-            { text: "100 сом", value: 100, color: "#2d1f4d", weight: 20 },
-            { text: "300 сом", value: 300, color: "#422375", weight: 10 },
-            { text: "500 сом", value: 500, color: "#581c87", weight: 5 }
+            { text: '50 сом', value: 50, color: '#1d1b3a', weight: 65 },
+            { text: '100 сом', value: 100, color: '#2d1f4d', weight: 20 },
+            { text: '300 сом', value: 300, color: '#422375', weight: 10 },
+            { text: '500 сом', value: 500, color: '#581c87', weight: 5 }
         ];
-        
         const numSectors = prizes.length;
         const arcSize = (2 * Math.PI) / numSectors;
         let isSpinning = false;
         let timerInterval = null;
 
         function drawWheel() {
-            const size = canvas.width; const center = size / 2; ctx.clearRect(0, 0, size, size);
+            const size = canvas.width;
+            const center = size / 2;
+            ctx.clearRect(0, 0, size, size);
             for (let i = 0; i < numSectors; i++) {
-                const angle = i * arcSize; ctx.fillStyle = prizes[i].color;
-                ctx.beginPath(); ctx.moveTo(center, center);
+                const angle = i * arcSize;
+                ctx.fillStyle = prizes[i].color;
+                ctx.beginPath();
+                ctx.moveTo(center, center);
                 ctx.arc(center, center, center - 5, angle, angle + arcSize);
-                ctx.lineTo(center, center); ctx.fill();
-                ctx.strokeStyle = '#272d3d'; ctx.lineWidth = 2; ctx.stroke();
-                ctx.save(); ctx.fillStyle = "#ffffff"; ctx.font = "bold 13px sans-serif";
-                ctx.translate(center, center); ctx.rotate(angle + arcSize / 2);
-                ctx.textAlign = "right"; ctx.fillText(prizes[i].text, center - 30, 5); ctx.restore();
+                ctx.lineTo(center, center);
+                ctx.fill();
+                ctx.strokeStyle = '#272d3d';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px sans-serif';
+                ctx.translate(center, center);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = 'right';
+                ctx.fillText(prizes[i].text, center - 30, 5);
+                ctx.restore();
             }
         }
 
@@ -804,12 +901,12 @@ function triggerTelegramSend() {
                             clearInterval(timerInterval);
                             btn.disabled = false;
                             btn.classList.remove('opacity-50');
-                            btn.innerText = "⚡ Крутить!";
+                            btn.innerText = '⚡ Крутить!';
                         } else {
-                            const hours = Math.floor(remaining / (1000 * 60 * 60));
-                            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                            const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-                            btn.innerText = `Доступно через ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                            const h = Math.floor(remaining / (1000 * 60 * 60));
+                            const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((remaining % (1000 * 60)) / 1000);
+                            btn.innerText = `Доступно через ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
                         }
                     }, 1000);
                     return false;
@@ -817,7 +914,7 @@ function triggerTelegramSend() {
             }
             btn.disabled = false;
             btn.classList.remove('opacity-50');
-            btn.innerText = "⚡ Крутить!";
+            btn.innerText = '⚡ Крутить!';
             return true;
         }
 
@@ -825,11 +922,11 @@ function triggerTelegramSend() {
             if (isSpinning || !checkWheelTimer()) return;
             isSpinning = true;
             const btn = document.getElementById('spin-btn');
-            btn.innerText = "⏳ Колесо крутится...";
+            btn.innerText = '⏳ Колесо крутится...';
             const winIndex = getWeightedPrizeIndex();
             const degreesPerSector = 360 / numSectors;
             const targetAngle = 360 - (winIndex * degreesPerSector) - (degreesPerSector / 2);
-            const stopAngle = (5 * 360) + targetAngle - 90; 
+            const stopAngle = (5 * 360) + targetAngle - 90;
             canvas.style.transition = 'transform 5s ease-out';
             canvas.style.transform = `rotate(${stopAngle}deg)`;
             setTimeout(() => {
@@ -840,283 +937,29 @@ function triggerTelegramSend() {
                 localStorage.setItem('waka_last_spin', Date.now().toString());
                 document.getElementById('user-balance').innerText = currentBalance;
                 alert(`🎉 Супер! Вы выиграли ${finalPrize.text}! Бонусы начислены.`);
-                canvas.style.transition = 'none'; 
+                canvas.style.transition = 'none';
                 canvas.style.transform = `rotate(${stopAngle % 360}deg)`;
                 setTimeout(() => { canvas.style.transition = 'transform 5s ease-out'; }, 50);
                 checkWheelTimer();
             }, 5000);
         }
 
-        drawWheel(); renderProducts(); updateCartCount(); checkWheelTimer();
-        
-       
-
-
-
-    </script>
-    <div id="success-modal" class="modal-overlay" style="display: none;">
-    <div class="success-content">
-        <div class="success-icon-circle">
-            <span class="checkmark">✓</span>
-        </div>
-        <h2>Заказ оформлен!</h2>
-        <p>Детали и инструкция по оплате отправлены в чат с ботом</p>
-        
-        <div class="success-buttons">
-            <button class="btn-secondary" onclick="location.reload()">В магазин</button>
-            <button class="btn-primary" onclick="triggerTelegramSend()">Открыть бота</button>
-        </div>
-    </div>
-</div>
-
-        </div>
-    </div>
-</div>
-
-<!-- ==================== АДМИНКА ==================== -->
-<div id="admin-login-modal" class="modal-overlay" style="display:none;">
-    <div class="terms-content" style="max-width:360px;padding:35px 25px;">
-        <h2 class="text-center text-2xl font-bold mb-8">Вход в админку</h2>
-        <input type="password" id="admin-password" placeholder="Введите пароль" 
-               class="w-full bg-zinc-900 border border-zinc-700 rounded-3xl px-6 py-5 text-white text-center text-lg mb-8 focus:outline-none focus:border-purple-500">
-        <div class="flex gap-4">
-            <button onclick="closeAdminLogin()" class="flex-1 py-4 bg-zinc-800 rounded-3xl font-bold">Отмена</button>
-            <button onclick="checkAdminPassword()" class="flex-1 py-4 bg-purple-600 rounded-3xl font-bold">Войти</button>
-        </div>
-    </div>
-</div>
-
-<div id="admin-panel" class="hidden fixed inset-0 bg-zinc-950 z-[999] overflow-y-auto">
-    <div class="p-5 max-w-md mx-auto">
-        <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
-            <h2 class="text-3xl font-bold">Админка</h2>
-            <button onclick="logoutAdmin()" class="text-4xl text-zinc-400 hover:text-white">✕</button>
-        </div>
-        
-        <div class="flex gap-2 mb-8 overflow-x-auto pb-2">
-            <button onclick="switchAdminTab(0)" id="admin-tab-0" class="admin-tab-btn px-8 py-3 bg-purple-600 text-white rounded-3xl font-bold whitespace-nowrap">Товары</button>
-            <button onclick="switchAdminTab(1)" id="admin-tab-1" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold whitespace-nowrap">Заказы</button>
-            <button onclick="switchAdminTab(2)" id="admin-tab-2" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold whitespace-nowrap">Статистика</button>
-        </div>
-
-        <div id="admin-content"></div>
-    </div>
-</div>
-
-<!-- ==================== АДМИНКА ==================== -->
-<div id="admin-login-modal" class="modal-overlay" style="display:none;">
-    <div class="terms-content" style="max-width:360px;padding:35px 25px;">
-        <h2 class="text-center text-2xl font-bold mb-8">Вход в админку</h2>
-        <input type="password" id="admin-password" placeholder="Введите пароль" 
-               class="w-full bg-zinc-900 border border-zinc-700 rounded-3xl px-6 py-5 text-white text-center text-lg mb-8 focus:outline-none focus:border-purple-500">
-        <div class="flex gap-4">
-            <button onclick="closeAdminLogin()" class="flex-1 py-4 bg-zinc-800 rounded-3xl font-bold">Отмена</button>
-            <button onclick="checkAdminPassword()" class="flex-1 py-4 bg-purple-600 rounded-3xl font-bold">Войти</button>
-        </div>
-    </div>
-</div>
-
-<div id="admin-panel" class="hidden fixed inset-0 bg-zinc-950 z-[999] overflow-y-auto">
-    <div class="p-5 max-w-md mx-auto">
-        <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
-            <h2 class="text-3xl font-bold">Админка</h2>
-            <button onclick="logoutAdmin()" class="text-4xl text-zinc-400 hover:text-white">✕</button>
-        </div>
-        
-        <div class="flex gap-2 mb-8 overflow-x-auto pb-2">
-            <button onclick="switchAdminTab(0)" id="admin-tab-0" class="admin-tab-btn px-8 py-3 bg-purple-600 text-white rounded-3xl font-bold whitespace-nowrap">Товары</button>
-            <button onclick="switchAdminTab(1)" id="admin-tab-1" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold whitespace-nowrap">Заказы</button>
-            <button onclick="switchAdminTab(2)" id="admin-tab-2" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold whitespace-nowrap">Статистика</button>
-        </div>
-
-        <div id="admin-content"></div>
-    </div>
-</div>
-
-<!-- ==================== АДМИНКА ==================== -->
-<div id="admin-login-modal" class="modal-overlay" style="display:none;">
-    <div class="terms-content" style="max-width:360px;padding:35px 25px;">
-        <h2 class="text-center text-2xl font-bold mb-8">Вход в админку</h2>
-        <input type="password" id="admin-password" placeholder="Введите пароль" 
-               class="w-full bg-zinc-900 border border-zinc-700 rounded-3xl px-6 py-5 text-white text-center text-lg mb-8">
-        <div class="flex gap-4">
-            <button onclick="closeAdminLogin()" class="flex-1 py-4 bg-zinc-800 rounded-3xl font-bold">Отмена</button>
-            <button onclick="checkAdminPassword()" class="flex-1 py-4 bg-purple-600 rounded-3xl font-bold">Войти</button>
-        </div>
-    </div>
-</div>
-
-<div id="admin-panel" class="hidden fixed inset-0 bg-zinc-950 z-[999] overflow-y-auto">
-    <div class="p-5 max-w-md mx-auto">
-        <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
-            <h2 class="text-3xl font-bold">Админка</h2>
-            <button onclick="logoutAdmin()" class="text-4xl text-zinc-400 hover:text-white">✕</button>
-        </div>
-        
-        <div class="flex gap-2 mb-8 overflow-x-auto pb-2">
-            <button onclick="switchAdminTab(0)" id="admin-tab-0" class="admin-tab-btn px-8 py-3 bg-purple-600 text-white rounded-3xl font-bold whitespace-nowrap">Товары</button>
-            <button onclick="switchAdminTab(1)" id="admin-tab-1" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold whitespace-nowrap">Заказы</button>
-            <button onclick="switchAdminTab(2)" id="admin-tab-2" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold whitespace-nowrap">Статистика</button>
-        </div>
-
-        <div id="admin-content"></div>
-    </div>
-</div>
-
-<!-- ==================== АДМИНКА ==================== -->
-<div id="admin-login-modal" class="modal-overlay" style="display:none;">
-    <div class="terms-content" style="max-width:360px;padding:35px 25px;">
-        <h2 class="text-center text-2xl font-bold mb-8">Вход в админку</h2>
-        <input type="password" id="admin-password" placeholder="Введите пароль" 
-               class="w-full bg-zinc-900 border border-zinc-700 rounded-3xl px-6 py-5 text-white text-center text-lg mb-8">
-        <div class="flex gap-4">
-            <button onclick="closeAdminLogin()" class="flex-1 py-4 bg-zinc-800 rounded-3xl font-bold">Отмена</button>
-            <button onclick="checkAdminPassword()" class="flex-1 py-4 bg-purple-600 rounded-3xl font-bold">Войти</button>
-        </div>
-    </div>
-</div>
-
-<div id="admin-panel" class="hidden fixed inset-0 bg-zinc-950 z-[999] overflow-y-auto">
-    <div class="p-5 max-w-md mx-auto">
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-3xl font-bold">Админка</h2>
-            <button onclick="logoutAdmin()" class="text-4xl text-zinc-400">✕</button>
-        </div>
-        
-        <div class="flex gap-2 mb-6 overflow-x-auto">
-            <button onclick="switchAdminTab(0)" class="admin-tab-btn px-6 py-2.5 bg-purple-600 text-white rounded-3xl font-bold">Товары</button>
-        </div>
-
-        <div id="admin-content" class="pb-20"></div>
-    </div>
-</div>
-
-<script>
-const ALLOWED_ADMIN_IDS = [6466044615, 8729059527];
-
-function isAdminUser() {
-    return ALLOWED_ADMIN_IDS.includes(tg.initDataUnsafe?.user?.id);
-}
-
-// Скрываем кнопку админа для всех остальных
-function hideAdminButton() {
-    if (!isAdminUser()) {
-        const navButtons = document.querySelectorAll('.nav-btn, button');
-        navButtons.forEach(btn => {
-            if (btn.textContent && btn.textContent.includes('Админ')) {
-                btn.style.display = 'none';
+        window.addEventListener('load', () => {
+            if (localStorage.getItem('terms-accepted') === 'true') {
+                document.getElementById('terms-modal').style.display = 'none';
             }
+            document.getElementById('user-balance').innerText = currentBalance;
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                const user = tg.initDataUnsafe.user;
+                document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                document.getElementById('user-id').innerText = 'ID: ' + user.id;
+            }
+            initAdminButton();
+            drawWheel();
+            renderProducts();
+            updateCartCount();
+            checkWheelTimer();
         });
-    }
-}
-
-function openAdmin() {
-    if (isAdminUser()) {
-        document.getElementById('admin-panel').classList.remove('hidden');
-        switchAdminTab(0);
-    } else {
-        alert("Доступ запрещён");
-    }
-}
-
-function checkAdminPassword() {
-    if (document.getElementById('admin-password').value === "wakazynk.228") {
-        closeAdminLogin();
-        document.getElementById('admin-panel').classList.remove('hidden');
-        switchAdminTab(0);
-    } else {
-        alert("Неверный пароль");
-    }
-}
-
-function closeAdminLogin() {
-    document.getElementById('admin-login-modal').style.display = 'none';
-}
-
-function logoutAdmin() {
-    document.getElementById('admin-panel').classList.add('hidden');
-}
-
-function switchAdminTab() {
-    let html = `<h3 class="font-bold text-xl mb-4">Управление товарами</h3>
-                <button onclick="addNewProduct()" class="bg-purple-600 w-full py-3 rounded-3xl mb-6">+ Новый товар</button>`;
-
-    products.forEach((p, i) => {
-        html += `<div class="bg-zinc-900 rounded-3xl p-5 mb-6">
-                    <input type="text" value="${p.name}" onchange="updateProductName(${i},this.value)" class="bg-transparent text-xl font-bold w-full mb-3 outline-none">
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" value="${p.img||''}" placeholder="Ссылка на фото" onchange="updateProductImage(${i},this.value)" class="flex-1 bg-zinc-800 rounded-2xl px-4 py-2 text-sm">
-                        <input type="number" value="${p.price}" onchange="updateProductPrice(${i},this.value)" class="w-24 bg-zinc-800 rounded-2xl px-4 py-2">
-                    </div>`;
-
-        p.flavors.forEach((f, j) => {
-            html += `<div class="flex items-center gap-3 bg-zinc-800 rounded-2xl px-4 py-3 mb-2">
-                        <input type="text" value="${f.name}" onchange="updateFlavorName(${i},${j},this.value)" class="flex-1 bg-transparent outline-none">
-                        <input type="number" value="${f.stock}" onchange="updateFlavorStock(${i},${j},this.value)" class="w-16 bg-zinc-900 text-center rounded-xl">
-                        <button onclick="deleteFlavor(${i},${j})" class="text-red-500">✕</button>
-                    </div>`;
-        });
-
-        html += `<button onclick="addFlavor(${i})" class="w-full py-3 text-purple-400 border border-dashed border-purple-400 rounded-2xl text-sm mt-2">+ Добавить вкус</button></div>`;
-    });
-
-    html += `<button onclick="saveAllChanges()" class="w-full py-4 bg-green-600 rounded-3xl font-bold">Сохранить изменения</button>`;
-    document.getElementById('admin-content').innerHTML = html;
-}
-
-function updateProductName(i,v){products .name=v}
-function updateProductPrice(i,v){products .price=+v}
-function updateProductImage(i,v){products .img=v}
-function updateFlavorName(i,j,v){products .flavors .name=v}
-function updateFlavorStock(i,j,v){products .flavors .stock=+v}
-
-function deleteFlavor(i,j){
-    if(confirm('Удалить?')) {
-        products .flavors.splice(j,1);
-        switchAdminTab();
-    }
-}
-
-function addFlavor(i){
-    let name = prompt("Название вкуса:");
-    if(!name) return;
-    let stock = +prompt("Количество:", "10") || 10;
-    products .flavors.push({name, stock});
-    switchAdminTab();
-}
-
-function addNewProduct(){
-    let name = prompt("Название товара:");
-    if(!name) return;
-    let price = +prompt("Цена:", "2300") || 2300;
-    products.push({
-        id: Date.now(),
-        name, price,
-        img: "https://picsum.photos/id/"+Math.floor(Math.random()*100)+"/300/300",
-        flavors: []
-    });
-    switchAdminTab();
-}
-
-function saveAllChanges(){
-    localStorage.setItem("waka_products", JSON.stringify(products));
-    alert("Сохранено!");
-    if(typeof renderProducts === "function") renderProducts();
-}
-
-function loadProducts(){
-    const saved = localStorage.getItem("waka_products");
-    if(saved) products = JSON.parse(saved);
-}
-
-window.addEventListener("load", () => {
-    loadProducts();
-    hideAdminButton();
-});
-</script>
-
-
-
-
+    </script>
 </body>
 </html>

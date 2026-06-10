@@ -381,27 +381,49 @@ window.addEventListener('load', function() {
 let globalOrderData = null;
 
 function submitOrderFinal() {
-    // 1. Собираем данные из полей
-    const phone = document.getElementById('checkout-phone')?.value || "Не указан";
-    const address = document.getElementById('checkout-address')?.value || "Не указан";
-    const total = document.getElementById('summary-total')?.innerText || "0";
+    try {
+        // 1. Собираем данные
+        const phone = document.getElementById('checkout-phone')?.value || "Не указан";
+        const address = document.getElementById('checkout-address')?.value || "Не указан";
+        const total = document.getElementById('summary-total')?.innerText || "0";
 
-    // 2. Формируем объект для отправки
-    globalOrderData = {
-        phone: phone,
-        address: address,
-        items: "WAKA 20000 x1", // Сюда подставится твой список товаров
-        total: total
-    };
+        globalOrderData = {
+            phone: phone,
+            address: address,
+            items: "WAKA 20000 x1", 
+            total: total
+        };
 
-    // 3. Показываем окно "Заказ оформлен!"
-    // Найди, как у тебя в HTML называется id этого экрана (например, 'success-screen' или 'order-success')
-    const successModal = document.getElementById('success-modal'); 
-    if (successModal) {
-        successModal.classList.add('active'); // Или successModal.style.display = 'flex';
+        // 2. Ищем окно. ЗАМЕНИ 'success-modal' НА СВОЙ ID ЕСЛИ ОН ДРУГОЙ!
+        const successModal = document.getElementById('success-modal'); 
+
+        if (successModal) {
+            // Если нашли окно, пробуем отобразить его всеми возможными способами
+            successModal.style.display = 'flex'; 
+            successModal.style.display = 'block'; 
+            successModal.classList.add('active');
+            successModal.classList.add('show');
+            
+            alert("Успех: Окно оформления найдено и мы его включили!");
+        } else {
+            // Если не нашли элемент с таким ID
+            alert("ОШИБКА: Элемент с id='success-modal' не найден в HTML! Проверь, как он называется.");
+            
+            // На крайний случай — шлем данные сразу, чтобы приложение не висло
+            triggerTelegramSend();
+        }
+
+    } catch (error) {
+        // Если код упал из-за синтаксической ошибки
+        alert("Критическая ошибка в JS: " + error.message);
+    }
+}
+
+function triggerTelegramSend() {
+    if (window.Telegram && window.Telegram.WebApp && globalOrderData) {
+        window.Telegram.WebApp.sendData(JSON.stringify(globalOrderData));
     } else {
-        // Если встроенного окна нет, отправляем данные сразу
-        triggerTelegramSend();
+        alert("Ошибка отправки: Данные не собраны или открыто не в ТГ");
     }
 }
 

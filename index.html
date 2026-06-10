@@ -413,6 +413,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
     <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
     <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
+    <button onclick="openAdminLogin()" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
 </nav>
 
     <script>
@@ -871,32 +872,31 @@ function triggerTelegramSend() {
         </div>
     </div>
 </div>
+
 <!-- ==================== АДМИНКА ==================== -->
-<div id="admin-login-modal" class="modal-overlay" style="display: none;">
-    <div class="terms-content" style="max-width: 340px; padding: 30px;">
-        <h2 class="text-center text-xl font-bold mb-6">Вход в админку</h2>
+<div id="admin-login-modal" class="modal-overlay" style="display:none;">
+    <div class="terms-content" style="max-width:360px;padding:35px 25px;">
+        <h2 class="text-center text-2xl font-bold mb-8">Вход в админку</h2>
         <input type="password" id="admin-password" placeholder="Введите пароль" 
-               class="w-full bg- border border-gray-700 rounded-2xl px-5 py-4 text-white text-center text-lg mb-6 focus:outline-none focus:border-purple-500">
-        <div class="flex gap-3">
-            <button onclick="closeAdminLogin()" 
-                    class="flex-1 py-4 bg-gray-800 rounded-2xl font-bold">Отмена</button>
-            <button onclick="checkAdminPassword()" 
-                    class="flex-1 py-4 bg-purple-600 rounded-2xl font-bold">Войти</button>
+               class="w-full bg-zinc-900 border border-zinc-700 rounded-3xl px-6 py-5 text-white text-center text-lg mb-8">
+        <div class="flex gap-4">
+            <button onclick="closeAdminLogin()" class="flex-1 py-4 bg-zinc-800 rounded-3xl font-bold">Отмена</button>
+            <button onclick="checkAdminPassword()" class="flex-1 py-4 bg-purple-600 rounded-3xl font-bold">Войти</button>
         </div>
     </div>
 </div>
 
-<div id="admin-panel" class="hidden fixed inset-0 bg- z-[100] overflow-y-auto">
-    <div class="p-4">
-        <div class="flex items-center justify-between mb-6 sticky top-0 bg- py-2">
-            <h2 class="text-2xl font-bold">Админка</h2>
-            <button onclick="logoutAdmin()" class="text-red-400 text-3xl leading-none">✕</button>
+<div id="admin-panel" class="hidden fixed inset-0 bg-zinc-950 z-[999] overflow-y-auto">
+    <div class="p-5">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-3xl font-bold">Админка</h2>
+            <button onclick="logoutAdmin()" class="text-4xl text-zinc-400">✕</button>
         </div>
 
-        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-            <button onclick="switchAdminTab(0)" id="admin-tab-0" class="admin-tab-btn px-6 py-2 bg-purple-600 text-white rounded-2xl font-bold whitespace-nowrap">Товары</button>
-            <button onclick="switchAdminTab(1)" id="admin-tab-1" class="admin-tab-btn px-6 py-2 bg- rounded-2xl font-bold whitespace-nowrap">Заказы</button>
-            <button onclick="switchAdminTab(2)" id="admin-tab-2" class="admin-tab-btn px-6 py-2 bg- rounded-2xl font-bold whitespace-nowrap">Статистика</button>
+        <div class="flex gap-2 mb-8 overflow-x-auto">
+            <button onclick="switchAdminTab(0)" id="admin-tab-0" class="admin-tab-btn px-8 py-3 bg-purple-600 text-white rounded-3xl font-bold">Товары</button>
+            <button onclick="switchAdminTab(1)" id="admin-tab-1" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold">Заказы</button>
+            <button onclick="switchAdminTab(2)" id="admin-tab-2" class="admin-tab-btn px-8 py-3 bg-zinc-900 rounded-3xl font-bold">Статистика</button>
         </div>
 
         <div id="admin-content"></div>
@@ -904,17 +904,21 @@ function triggerTelegramSend() {
 </div>
 
 <script>
-// ==================== АДМИНКА - ЛОГИКА ====================
-let currentAdminTab = 0;
+// ==================== АДМИНКА ====================
+const ALLOWED_ADMINS = [6466044615, 8729059527];
 
-function openAdminLogin() {
-    document.getElementById('admin-login-modal').style.display = 'flex';
-    setTimeout(() => document.getElementById('admin-password').focus(), 100);
+function isAdmin() {
+    const userId = tg.initDataUnsafe?.user?.id;
+    return userId && ALLOWED_ADMINS.includes(userId);
 }
 
-function closeAdminLogin() {
-    document.getElementById('admin-login-modal').style.display = 'none';
-    document.getElementById('admin-password').value = '';
+function openAdminLogin() {
+    if (isAdmin()) {
+        document.getElementById('admin-panel').classList.remove('hidden');
+        switchAdminTab(0);
+    } else {
+        document.getElementById('admin-login-modal').style.display = 'flex';
+    }
 }
 
 function checkAdminPassword() {
@@ -923,8 +927,13 @@ function checkAdminPassword() {
         document.getElementById('admin-panel').classList.remove('hidden');
         switchAdminTab(0);
     } else {
-        alert("❌ Неправильный пароль!");
+        alert("❌ Неверный пароль");
     }
+}
+
+function closeAdminLogin() {
+    document.getElementById('admin-login-modal').style.display = 'none';
+    document.getElementById('admin-password').value = '';
 }
 
 function logoutAdmin() {
@@ -932,139 +941,209 @@ function logoutAdmin() {
 }
 
 function switchAdminTab(tab) {
-    currentAdminTab = tab;
-    
-    document.querySelectorAll('.admin-tab-btn').forEach((btn, i) => {
-        if (i === tab) btn.classList.add('!bg-purple-600', '!text-white');
-        else btn.classList.remove('!bg-purple-600', '!text-white');
+    document.querySelectorAll('.admin-tab-btn').forEach((b, i) => {
+        b.classList.toggle('bg-purple-600', i === tab);
+        b.classList.toggle('text-white', i === tab);
+        b.classList.toggle('bg-zinc-900', i !== tab);
     });
 
     const content = document.getElementById('admin-content');
     
     if (tab === 0) {
         let html = `
-            <div class="bg-[#121824] rounded-3xl p-6">
-                <div class="flex justify-between mb-5">
-                    <input id="product-name" value="${products[0].name}" 
-                           class="bg-transparent text-2xl font-bold outline-none flex-1">
-                    <div class="flex gap-2">
-                        <input id="product-price" type="number" value="${products[0].price}" 
-                               class="w-24 bg- text-center rounded-2xl py-2 font-bold">
-                        <span class="self-center text-gray-400">сом</span>
-                    </div>
-                </div>`;
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-xl">Управление товарами</h3>
+                <button onclick="addNewProduct()" 
+                        class="bg-purple-600 px-5 py-2 rounded-2xl text-sm font-bold">+ Новый товар</button>
+            </div>`;
 
-        products[0].flavors.forEach((flavor, i) => {
+        products.forEach((product, pIndex) => {
             html += `
-                <div class="flex items-center gap-3 bg- p-4 rounded-2xl mb-3">
-                    <input type="text" value="${flavor.name}" onchange="updateFlavor(${i}, 'name', this.value)" 
-                           class="flex-1 bg-transparent outline-none font-medium">
-                    <input type="number" value="${flavor.stock}" onchange="updateFlavor(${i}, 'stock', this.value)" 
-                           class="w-20 text-center bg-[#121824] rounded-xl py-2 outline-none">
-                    <button onclick="deleteFlavor(${i})" class="text-red-500 text-xl px-2">✕</button>
+                <div class="bg-zinc-900 rounded-3xl p-5 mb-8">
+                    <div class="flex justify-between mb-4">
+                        <input type="text" value="${product.name}" 
+                               onchange="updateProductName(${pIndex}, this.value)"
+                               class="bg-transparent text-2xl font-bold outline-none flex-1">
+                        <div class="flex items-center gap-3">
+                            <input type="text" value="${product.img || ''}" placeholder="Ссылка на картинку"
+                                   onchange="updateProductImage(${pIndex}, this.value)"
+                                   class="flex-1 bg-zinc-800 text-xs px-3 py-2 rounded-2xl outline-none text-gray-300">
+                            <input type="number" value="${product.price}" 
+                                   onchange="updateProductPrice(${pIndex}, this.value)"
+                                   class="w-24 bg-zinc-800 text-center rounded-2xl py-2 font-bold outline-none">
+                            <span class="text-xs text-gray-400">сом</span>
+                        </div>
+                    </div>`;
+
+            product.flavors.forEach((flavor, fIndex) => {
+                html += `
+                    <div class="flex items-center gap-3 bg-zinc-950 p-4 rounded-2xl mb-3">
+                        <input type="text" value="${flavor.name}" 
+                               onchange="updateFlavorName(${pIndex}, ${fIndex}, this.value)"
+                               class="flex-1 bg-transparent outline-none font-medium">
+                        <input type="number" value="${flavor.stock}" 
+                               onchange="updateFlavorStock(${pIndex}, ${fIndex}, this.value)"
+                               class="w-20 bg-zinc-800 text-center rounded-xl py-2 outline-none">
+                        <button onclick="deleteFlavor(${pIndex}, ${fIndex})" 
+                                class="text-red-500 text-2xl px-2">✕</button>
+                    </div>`;
+            });
+
+            html += `
+                <button onclick="addFlavor(${pIndex})" 
+                        class="w-full py-3 mt-2 border border-dashed border-purple-400 text-purple-400 rounded-2xl text-sm font-bold">
+                    + Добавить вкус
+                </button>
                 </div>`;
         });
 
         html += `
-            <button onclick="addNewFlavor()" 
-                    class="w-full mt-4 py-4 bg-purple-600/10 border border-dashed border-purple-500 text-purple-400 rounded-2xl font-bold">
-                + Добавить новый вкус
-            </button>
-            </div>`;
+            <button onclick="saveAllChanges()" 
+                    class="w-full py-4 bg-emerald-600 rounded-3xl font-bold text-lg mt-4">
+                💾 Сохранить все изменения
+            </button>`;
 
         content.innerHTML = html;
     } 
     else if (tab === 1) {
-        content.innerHTML = `<div class="bg-[#121824] rounded-3xl py-20 text-center text-gray-400">Список заказов появится здесь</div>`;
+        content.innerHTML = `<div class="bg-zinc-900 rounded-3xl p-16 text-center text-gray-400">Раздел заказов пока пуст</div>`;
     } 
     else {
-        content.innerHTML = `<div class="bg-[#121824] rounded-3xl py-20 text-center text-gray-400">Статистика появится здесь</div>`;
+        content.innerHTML = `<div class="bg-zinc-900 rounded-3xl p-16 text-center text-gray-400">Статистика будет здесь</div>`;
     }
 }
 
-function updateFlavor(index, field, value) {
-    if (field === 'name') {
-        products[0].flavors .name = value;
-    } else if (field === 'stock') {
-        products[0].flavors .stock = parseInt(value) || 0;
-    }
-    localStorage.setItem('waka_products', JSON.stringify(products));
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+function updateProductName(pIndex, newName) {
+    products .name = newName;
 }
 
-function deleteFlavor(index) {
+function updateProductPrice(pIndex, newPrice) {
+    products .price = parseInt(newPrice) || products .price;
+}
+
+function updateFlavorName(pIndex, fIndex, newName) {
+    products .flavors .name = newName;
+}
+
+function updateFlavorStock(pIndex, fIndex, newStock) {
+    products .flavors .stock = parseInt(newStock) || 0;
+}
+
+function deleteFlavor(pIndex, fIndex) {
     if (confirm("Удалить этот вкус?")) {
-        products[0].flavors.splice(index, 1);
-        localStorage.setItem('waka_products', JSON.stringify(products));
+        products .flavors.splice(fIndex, 1);
         switchAdminTab(0);
     }
 }
 
-function addNewFlavor() {
-    const name = prompt("Введите название вкуса:");
-    if (!name) return;
+function addFlavor(pIndex) {
+    const name = prompt("Название нового вкуса:");
+    if (!name || name.trim() === "") return;
     
     const stock = parseInt(prompt("Количество в наличии:", "10")) || 10;
     
-    products[0].flavors.push({ name: name.trim(), stock: stock });
-    localStorage.setItem('waka_products', JSON.stringify(products));
-    switchAdminTab(0);
+    products[pIndex].flavors.push({ 
+        name: name.trim(), 
+        stock: stock 
+    });
+    
+    switchAdminTab(0);  // Обновляем экран
+    saveAllChanges();   // Сохраняем
 }
 
-// Сохранение изменений цены и названия
-document.addEventListener('change', function(e) {
-    if (e.target.id === 'product-name') {
-        products[0].name = e.target.value;
-        localStorage.setItem('waka_products', JSON.stringify(products));
-    }
-    if (e.target.id === 'product-price') {
-        products[0].price = parseInt(e.target.value) || 2300;
-        localStorage.setItem('waka_products', JSON.stringify(products));
-    }
-});
-</script>
-<script>
-// ==================== СОХРАНЕНИЕ И ЗАГРУЗКА ТОВАРОВ ====================
+function addNewProduct() {
+    const name = prompt("Название нового товара:");
+    if (!name || name.trim() === "") return;
+    
+    const price = parseInt(prompt("Цена товара (сом):", "2300")) || 2300;
+    
+    const newProduct = {
+        id: Date.now(),
+        name: name.trim(),
+        price: price,
+        oldPrice: price + 300,
+        discount: "-10%",
+        status: "instock",
+        img: "https://picsum.photos/id/" + (Math.floor(Math.random() * 100) + 10) + "/300/300",
+        flavors: []
+    };
+    
+    products.push(newProduct);
+    
+    // Сохраняем
+    localStorage.setItem('waka_products', JSON.stringify(products));
+    
+    // Обновляем админку
+    switchAdminTab(0);
+    
+    // Обновляем основной каталог
+    renderProducts();   // ← Это главное
+    
+    alert("✅ Новый товар добавлен и появился в каталоге!");
+}
 
-// Загрузка сохранённых товаров при запуске
+function renderProducts() {
+    const grid = document.getElementById('catalog-grid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    document.getElementById('product-count').innerText = `${products.length} товара`;
+
+    products.forEach(p => {
+        const totalStock = p.flavors.reduce((sum, f) => sum + f.stock, 0);
+        grid.innerHTML += `
+            <div class="bg-[#121824] rounded-2xl border border-gray-900 overflow-hidden relative flex flex-col cursor-pointer" onclick="openDetails(${p.id})">
+                <span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg z-10">${p.discount}</span>
+                <span class="absolute top-2 right-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded-lg z-10">В наличии</span>
+                <div class="w-full aspect-square bg-[#171e2c] flex items-center justify-center p-4">
+                    <img src="${p.img}" alt="${p.name}" class="rounded-xl object-cover max-h-full">
+                </div>
+                <div class="p-3 flex-1 flex flex-col justify-between space-y-3">
+                    <div>
+                        <h3 class="font-bold text-sm">${p.name}</h3>
+                        <p class="text-[10px] text-gray-400 mt-1">📦 Всего: ${totalStock} шт.</p>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-baseline space-x-0.5">
+                            <span class="text-base font-black">${p.price}</span>
+                            <span class="text-[9px] text-gray-400">сом</span>
+                        </div>
+                        <button onclick="event.stopPropagation(); openDetails(${p.id})" class="bg-purple-600 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-90">Выбрать</button>
+                    </div>
+                </div>
+            </div>`;
+    });
+}
+
+function saveAllChanges() {
+    localStorage.setItem('waka_products', JSON.stringify(products));
+    alert("✅ Все изменения успешно сохранены!");
+}
+function updateProductImage(pIndex, newImg) {
+    products .img = newImg;
+}
+
+function saveAllChanges() {
+    localStorage.setItem('waka_products', JSON.stringify(products));
+    alert("✅ Все изменения сохранены!");
+    // Перезагружаем каталог, чтобы новые товары появились
+    if (typeof renderCatalog === 'function') renderCatalog();
+}
+
 function loadSavedProducts() {
     const saved = localStorage.getItem('waka_products');
     if (saved) {
-        const loadedProducts = JSON.parse(saved);
-        products = loadedProducts;  // Заменяем наш массив на сохранённый
-        console.log('✅ Товары загружены из памяти');
-    } else {
-        // Если ничего не сохранено — сохраняем текущие товары
-        saveProducts();
+        products = JSON.parse(saved);
     }
 }
 
-// Сохранение товаров
-function saveProducts() {
-    localStorage.setItem('waka_products', JSON.stringify(products));
-    console.log('💾 Товары сохранены');
-}
-
-// Вызываем загрузку при старте
+// Загружаем сохранённые данные при запуске
 window.addEventListener('load', loadSavedProducts);
-
-// Обновляем функцию addNewFlavor, updateFlavor и deleteFlavor, чтобы сохраняли изменения
-const originalAddNewFlavor = addNewFlavor;
-addNewFlavor = function() {
-    originalAddNewFlavor();
-    saveProducts();
-};
-
-const originalUpdateFlavor = updateFlavor;
-updateFlavor = function(index, field, value) {
-    originalUpdateFlavor(index, field, value);
-    saveProducts();
-};
-
-const originalDeleteFlavor = deleteFlavor;
-deleteFlavor = function(index) {
-    originalDeleteFlavor(index);
-    saveProducts();
-};
 </script>
+
+
+
+
 </body>
 </html>

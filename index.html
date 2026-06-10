@@ -409,11 +409,11 @@ input:checked + .slider:before { transform: translateX(20px); }
         </div>
     </main>
 
-    <nav class="fixed bottom-0 inset-x-0 bg-[#0f131c]/95 backdrop-blur-md border-t border-gray-900 flex justify-around py-3 text-gray-500 text-[10px] font-semibold z-40">
-        <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
-        <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
-        <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
-    </nav>
+    <nav class="fixed bottom-0 inset-x-0 bg- /95 backdrop-blur-md border-t border-gray-900 flex justify-around py-3 text-gray-500 text- font-semibold z-40">
+    <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
+    <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
+    <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
+</nav>
 
     <script>
       // Функция закрытия окна
@@ -848,6 +848,10 @@ function triggerTelegramSend() {
 
         drawWheel(); renderProducts(); updateCartCount(); checkWheelTimer();
         
+       
+
+
+
     </script>
     <div id="success-modal" class="modal-overlay" style="display: none;">
     <div class="success-content">
@@ -863,5 +867,204 @@ function triggerTelegramSend() {
         </div>
     </div>
 </div>
+
+        </div>
+    </div>
+</div>
+<!-- ==================== АДМИНКА ==================== -->
+<div id="admin-login-modal" class="modal-overlay" style="display: none;">
+    <div class="terms-content" style="max-width: 340px; padding: 30px;">
+        <h2 class="text-center text-xl font-bold mb-6">Вход в админку</h2>
+        <input type="password" id="admin-password" placeholder="Введите пароль" 
+               class="w-full bg- border border-gray-700 rounded-2xl px-5 py-4 text-white text-center text-lg mb-6 focus:outline-none focus:border-purple-500">
+        <div class="flex gap-3">
+            <button onclick="closeAdminLogin()" 
+                    class="flex-1 py-4 bg-gray-800 rounded-2xl font-bold">Отмена</button>
+            <button onclick="checkAdminPassword()" 
+                    class="flex-1 py-4 bg-purple-600 rounded-2xl font-bold">Войти</button>
+        </div>
+    </div>
+</div>
+
+<div id="admin-panel" class="hidden fixed inset-0 bg- z-[100] overflow-y-auto">
+    <div class="p-4">
+        <div class="flex items-center justify-between mb-6 sticky top-0 bg- py-2">
+            <h2 class="text-2xl font-bold">Админка</h2>
+            <button onclick="logoutAdmin()" class="text-red-400 text-3xl leading-none">✕</button>
+        </div>
+
+        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <button onclick="switchAdminTab(0)" id="admin-tab-0" class="admin-tab-btn px-6 py-2 bg-purple-600 text-white rounded-2xl font-bold whitespace-nowrap">Товары</button>
+            <button onclick="switchAdminTab(1)" id="admin-tab-1" class="admin-tab-btn px-6 py-2 bg- rounded-2xl font-bold whitespace-nowrap">Заказы</button>
+            <button onclick="switchAdminTab(2)" id="admin-tab-2" class="admin-tab-btn px-6 py-2 bg- rounded-2xl font-bold whitespace-nowrap">Статистика</button>
+        </div>
+
+        <div id="admin-content"></div>
+    </div>
+</div>
+
+<script>
+// ==================== АДМИНКА - ЛОГИКА ====================
+let currentAdminTab = 0;
+
+function openAdminLogin() {
+    document.getElementById('admin-login-modal').style.display = 'flex';
+    setTimeout(() => document.getElementById('admin-password').focus(), 100);
+}
+
+function closeAdminLogin() {
+    document.getElementById('admin-login-modal').style.display = 'none';
+    document.getElementById('admin-password').value = '';
+}
+
+function checkAdminPassword() {
+    if (document.getElementById('admin-password').value === "wakazynk.228") {
+        closeAdminLogin();
+        document.getElementById('admin-panel').classList.remove('hidden');
+        switchAdminTab(0);
+    } else {
+        alert("❌ Неправильный пароль!");
+    }
+}
+
+function logoutAdmin() {
+    document.getElementById('admin-panel').classList.add('hidden');
+}
+
+function switchAdminTab(tab) {
+    currentAdminTab = tab;
+    
+    document.querySelectorAll('.admin-tab-btn').forEach((btn, i) => {
+        if (i === tab) btn.classList.add('!bg-purple-600', '!text-white');
+        else btn.classList.remove('!bg-purple-600', '!text-white');
+    });
+
+    const content = document.getElementById('admin-content');
+    
+    if (tab === 0) {
+        let html = `
+            <div class="bg-[#121824] rounded-3xl p-6">
+                <div class="flex justify-between mb-5">
+                    <input id="product-name" value="${products[0].name}" 
+                           class="bg-transparent text-2xl font-bold outline-none flex-1">
+                    <div class="flex gap-2">
+                        <input id="product-price" type="number" value="${products[0].price}" 
+                               class="w-24 bg- text-center rounded-2xl py-2 font-bold">
+                        <span class="self-center text-gray-400">сом</span>
+                    </div>
+                </div>`;
+
+        products[0].flavors.forEach((flavor, i) => {
+            html += `
+                <div class="flex items-center gap-3 bg- p-4 rounded-2xl mb-3">
+                    <input type="text" value="${flavor.name}" onchange="updateFlavor(${i}, 'name', this.value)" 
+                           class="flex-1 bg-transparent outline-none font-medium">
+                    <input type="number" value="${flavor.stock}" onchange="updateFlavor(${i}, 'stock', this.value)" 
+                           class="w-20 text-center bg-[#121824] rounded-xl py-2 outline-none">
+                    <button onclick="deleteFlavor(${i})" class="text-red-500 text-xl px-2">✕</button>
+                </div>`;
+        });
+
+        html += `
+            <button onclick="addNewFlavor()" 
+                    class="w-full mt-4 py-4 bg-purple-600/10 border border-dashed border-purple-500 text-purple-400 rounded-2xl font-bold">
+                + Добавить новый вкус
+            </button>
+            </div>`;
+
+        content.innerHTML = html;
+    } 
+    else if (tab === 1) {
+        content.innerHTML = `<div class="bg-[#121824] rounded-3xl py-20 text-center text-gray-400">Список заказов появится здесь</div>`;
+    } 
+    else {
+        content.innerHTML = `<div class="bg-[#121824] rounded-3xl py-20 text-center text-gray-400">Статистика появится здесь</div>`;
+    }
+}
+
+function updateFlavor(index, field, value) {
+    if (field === 'name') {
+        products[0].flavors .name = value;
+    } else if (field === 'stock') {
+        products[0].flavors .stock = parseInt(value) || 0;
+    }
+    localStorage.setItem('waka_products', JSON.stringify(products));
+}
+
+function deleteFlavor(index) {
+    if (confirm("Удалить этот вкус?")) {
+        products[0].flavors.splice(index, 1);
+        localStorage.setItem('waka_products', JSON.stringify(products));
+        switchAdminTab(0);
+    }
+}
+
+function addNewFlavor() {
+    const name = prompt("Введите название вкуса:");
+    if (!name) return;
+    
+    const stock = parseInt(prompt("Количество в наличии:", "10")) || 10;
+    
+    products[0].flavors.push({ name: name.trim(), stock: stock });
+    localStorage.setItem('waka_products', JSON.stringify(products));
+    switchAdminTab(0);
+}
+
+// Сохранение изменений цены и названия
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'product-name') {
+        products[0].name = e.target.value;
+        localStorage.setItem('waka_products', JSON.stringify(products));
+    }
+    if (e.target.id === 'product-price') {
+        products[0].price = parseInt(e.target.value) || 2300;
+        localStorage.setItem('waka_products', JSON.stringify(products));
+    }
+});
+</script>
+<script>
+// ==================== СОХРАНЕНИЕ И ЗАГРУЗКА ТОВАРОВ ====================
+
+// Загрузка сохранённых товаров при запуске
+function loadSavedProducts() {
+    const saved = localStorage.getItem('waka_products');
+    if (saved) {
+        const loadedProducts = JSON.parse(saved);
+        products = loadedProducts;  // Заменяем наш массив на сохранённый
+        console.log('✅ Товары загружены из памяти');
+    } else {
+        // Если ничего не сохранено — сохраняем текущие товары
+        saveProducts();
+    }
+}
+
+// Сохранение товаров
+function saveProducts() {
+    localStorage.setItem('waka_products', JSON.stringify(products));
+    console.log('💾 Товары сохранены');
+}
+
+// Вызываем загрузку при старте
+window.addEventListener('load', loadSavedProducts);
+
+// Обновляем функцию addNewFlavor, updateFlavor и deleteFlavor, чтобы сохраняли изменения
+const originalAddNewFlavor = addNewFlavor;
+addNewFlavor = function() {
+    originalAddNewFlavor();
+    saveProducts();
+};
+
+const originalUpdateFlavor = updateFlavor;
+updateFlavor = function(index, field, value) {
+    originalUpdateFlavor(index, field, value);
+    saveProducts();
+};
+
+const originalDeleteFlavor = deleteFlavor;
+deleteFlavor = function(index) {
+    originalDeleteFlavor(index);
+    saveProducts();
+};
+</script>
 </body>
 </html>

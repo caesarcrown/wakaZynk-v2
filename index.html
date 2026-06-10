@@ -340,7 +340,7 @@
         <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
         <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
         <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
-        <button id="btn-admin" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
+        <button id="btn-admin" onclick="openAdminPanel()" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
     </nav>
 
     <div id="success-modal" class="modal-overlay" style="display: none;">
@@ -418,11 +418,24 @@
             return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
         }
 
+        function getTelegramUserId() {
+            const unsafeId = tg?.initDataUnsafe?.user?.id;
+            if (unsafeId != null) return String(unsafeId);
+
+            const initData = tg?.initData || '';
+            if (initData) {
+                try {
+                    const userRaw = new URLSearchParams(initData).get('user');
+                    if (userRaw) return String(JSON.parse(userRaw).id);
+                } catch (e) {}
+            }
+            return null;
+        }
+
         function isAdminUser() {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('is_admin') === '1') return true;
-            const id = tg?.initDataUnsafe?.user?.id;
-            return id != null && ADMIN_IDS.has(String(id));
+            const userId = getTelegramUserId();
+            if (userId && ADMIN_IDS.has(userId)) return true;
+            return new URLSearchParams(window.location.search).get('is_admin') === '1';
         }
 
         function isAdminPanelOpen() {
@@ -915,7 +928,7 @@
         }
 
         const canvas = document.getElementById('wheelCanvas');
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas ? canvas.getContext('2d') : null;
         const prizes = [
             { text: '50 сом', value: 50, color: '#1d1b3a', weight: 65 },
             { text: '100 сом', value: 100, color: '#2d1f4d', weight: 20 },
@@ -928,6 +941,7 @@
         let timerInterval = null;
 
         function drawWheel() {
+            if (!canvas || !ctx) return;
             const size = canvas.width;
             const center = size / 2;
             ctx.clearRect(0, 0, size, size);
@@ -997,6 +1011,7 @@
         }
 
         function spinWheel() {
+            if (!canvas || !ctx) return;
             if (isSpinning || !checkWheelTimer()) return;
             isSpinning = true;
             const btn = document.getElementById('spin-btn');
@@ -1043,12 +1058,22 @@
             checkWheelTimer();
         }
 
+        window.openAdminPanel = openAdminPanel;
+        window.closeAdminPanel = closeAdminPanel;
+
         bindAdminEvents();
-        tg.ready(() => {
+
+        function bootApp() {
             initApp();
-            setTimeout(updateAdminUI, 300);
-            setTimeout(updateAdminUI, 1000);
-        });
+            updateAdminUI();
+            setTimeout(updateAdminUI, 200);
+            setTimeout(updateAdminUI, 800);
+            setTimeout(updateAdminUI, 2000);
+        }
+
+        if (typeof tg.ready === 'function') tg.ready(bootApp);
+        else bootApp();
+        window.addEventListener('load', bootApp);
     </script>
 </body>
 </html>

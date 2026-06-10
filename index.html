@@ -482,32 +482,30 @@ function submitOrderFinal() {
 }
 
 function triggerTelegramSend() {
-    // Отправляем собранные данные в Телеграм (это закроет окно мини-аппа)
-    if (window.Telegram && window.Telegram.WebApp && globalOrderData) {
-        window.Telegram.WebApp.sendData(JSON.stringify(globalOrderData));
+    // 1. Проверяем, зафиксировались ли данные заказа
+    if (!globalOrderData) {
+        alert("Ошибка: Данные заказа не найдены в памяти!");
+        return;
+    }
+
+    // 2. Проверяем, что мини-апп запущен именно внутри Telegram
+    if (window.Telegram && window.Telegram.WebApp) {
+        try {
+            // Переводим данные в строку для отправки боту
+            const dataString = JSON.stringify(globalOrderData);
+            
+            // Отправляем боту (это действие САМО автоматически закроет окно магазина!)
+            window.Telegram.WebApp.sendData(dataString);
+            
+        } catch (error) {
+            alert("Ошибка при отправке через Telegram API: " + error.message);
+        }
     } else {
-        // Локальный бэкап на случай тестов вне ТГ
+        // На случай, если ты тестируешь просто в браузере на ПК (вне ТГ)
+        alert("Браузерный тест! Боту улетели бы вот эти данные:\n" + JSON.stringify(globalOrderData));
+        
         const modal = document.getElementById('success-modal');
         if (modal) modal.style.display = 'none';
-    }
-}
-
-function triggerTelegramSend() {
-    if (window.Telegram && window.Telegram.WebApp && globalOrderData) {
-        window.Telegram.WebApp.sendData(JSON.stringify(globalOrderData));
-    } else {
-        alert("Ошибка отправки: Данные не собраны или открыто не в ТГ");
-    }
-}
-
-// Эту функцию мы повесим на кнопку "Открыть бота"
-function triggerTelegramSend() {
-    if (window.Telegram && window.Telegram.WebApp && globalOrderData) {
-        // Отправляем данные в чат (это действие закроет магазин)
-        window.Telegram.WebApp.sendData(JSON.stringify(globalOrderData));
-    } else {
-        // Если что-то пошло не так, просто закрываем
-        window.Telegram.WebApp.close();
     }
 }
 

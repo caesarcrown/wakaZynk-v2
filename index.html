@@ -24,9 +24,126 @@
             border-color: #a855f7;
             background-color: rgba(168, 85, 247, 0.15);
         }
+        /* Стили для окна условий */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 10000;
+}
+
+.terms-content {
+    background: #121520; /* Темный фон как на фото */
+    width: 90%; max-width: 400px;
+    border-radius: 24px; padding: 24px;
+    color: white; font-family: sans-serif;
+}
+
+.terms-header {
+    display: flex; align-items: center; gap: 15px; margin-bottom: 25px;
+}
+
+.warning-icon { color: #facc15; font-size: 32px; }
+.terms-header h3 { margin: 0; font-size: 18px; }
+.terms-header p { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
+
+.terms-list { display: flex; flex-direction: column; gap: 12px; }
+
+.terms-item {
+    display: flex; gap: 15px; padding: 16px; border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.terms-item i { font-size: 20px; margin-top: 3px; }
+.terms-item strong { display: block; font-size: 14px; margin-bottom: 4px; }
+.terms-item p { margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.4; }
+
+.item-red i { color: #ef4444; }
+.item-blue i { color: #3b82f6; }
+.item-gold i { color: #f59e0b; }
+
+.terms-footer { margin-top: 25px; }
+
+.toggle-container {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; padding: 0 5px;
+}
+
+.toggle-container span { font-size: 14px; color: white; }
+
+/* Стили переключателя (Toggle) */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #334155; transition: .4s; border-radius: 24px;
+}
+.slider:before {
+    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+    background-color: white; transition: .4s; border-radius: 50%;
+}
+input:checked + .slider { background-color: #3b82f6; }
+input:checked + .slider:before { transform: translateX(20px); }
+
+.btn-confirm {
+    width: 100%; border: none; padding: 16px; border-radius: 16px;
+    background: #ffffff; color: black; font-weight: bold; font-size: 16px;
+    cursor: pointer; transition: 0.2s;
+}
+
+.btn-confirm:active { transform: scale(0.98); }
     </style>
 </head>
 <body class="select-none overflow-x-hidden pb-24">
+  <div id="terms-modal" class="modal-overlay">
+    <div class="terms-content">
+        <div class="terms-header">
+            <i class="fa-solid fa-triangle-exclamation warning-icon"></i>
+            <div>
+                <h3>Важные условия покупки</h3>
+                <p>Подтвердите перед входом в магазин</p>
+            </div>
+        </div>
+
+        <div class="terms-list">
+            <div class="terms-item item-red">
+                <i class="fa-solid fa-circle-xmark"></i>
+                <div>
+                    <strong>Возврата денег нет</strong>
+                    <p>После покупки возврат денежных средств не производится.</p>
+                </div>
+            </div>
+
+            <div class="terms-item item-blue">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>
+                    <strong>Замена только при браке</strong>
+                    <p>Замена возможна только при подтвержденном браке товара.</p>
+                </div>
+            </div>
+
+            <div class="terms-item item-gold">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <div>
+                    <strong>Покупка только от 18+</strong>
+                    <p>Нажимая "Хорошо", вы подтверждаете, что вам есть 18 лет.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="terms-footer">
+            <div class="toggle-container">
+                <span>Не показывать снова</span>
+                <label class="switch">
+                    <input type="checkbox" id="dont-show-again">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <button class="btn-confirm" onclick="closeTermsModal()">Хорошо</button>
+        </div>
+    </div>
+</div>
 
     <header class="p-4 flex items-center justify-between border-b border-gray-900 bg-[#0f131c] sticky top-0 z-30">
         <div class="flex items-center space-x-3">
@@ -220,6 +337,26 @@
     </nav>
 
     <script>
+      // Функция закрытия окна
+function closeTermsModal() {
+    const modal = document.getElementById('terms-modal');
+    const checkbox = document.getElementById('dont-show-again');
+    
+    // Если галочка стоит, запоминаем это в памяти телефона
+    if (checkbox.checked) {
+        localStorage.setItem('terms-accepted', 'true');
+    }
+    
+    modal.style.display = 'none';
+}
+
+// Проверка при загрузке страницы
+window.addEventListener('load', function() {
+    const isAccepted = localStorage.getItem('terms-accepted');
+    if (isAccepted === 'true') {
+        document.getElementById('terms-modal').style.display = 'none';
+    }
+});
         const tg = window.Telegram.WebApp;
         tg.expand();
 
@@ -240,33 +377,42 @@
 
         // --- ЛОГИКА ОТПРАВКИ ЗАКАЗА В БОТ ---
         
-        function submitOrderFinal() {
-    // ТЕСТ 1: Проверяем, нажимается ли кнопка вообще
-    alert("Кнопка нажата, функция submitOrderFinal запустилась!");
+        // Создаем переменную для хранения данных заказа
+let globalOrderData = null;
 
+function submitOrderFinal() {
+    // 1. Собираем данные из полей
     const phone = document.getElementById('checkout-phone')?.value || "Не указан";
     const address = document.getElementById('checkout-address')?.value || "Не указан";
     const total = document.getElementById('summary-total')?.innerText || "0";
 
-    const orderData = {
+    // 2. Формируем объект для отправки
+    globalOrderData = {
         phone: phone,
         address: address,
-        items: "Тест: WAKA 20000 x1", // Пока запишем текстом для проверки
+        items: "WAKA 20000 x1", // Сюда подставится твой список товаров
         total: total
     };
 
-    // ТЕСТ 2: Проверяем, собрались ли данные
-    alert("Данные собраны: " + JSON.stringify(orderData));
+    // 3. Показываем окно "Заказ оформлен!"
+    // Найди, как у тебя в HTML называется id этого экрана (например, 'success-screen' или 'order-success')
+    const successModal = document.getElementById('success-modal'); 
+    if (successModal) {
+        successModal.classList.add('active'); // Или successModal.style.display = 'flex';
+    } else {
+        // Если встроенного окна нет, отправляем данные сразу
+        triggerTelegramSend();
+    }
+}
 
-    try {
-        // Отправка в Телеграм
-        window.Telegram.WebApp.sendData(JSON.stringify(orderData));
-        
-        // ТЕСТ 3: Успешный вызов функции
-        alert("Телеграм принял команду sendData! Закрываем окно.");
-        window.Telegram.WebApp.close(); 
-    } catch (error) {
-        alert("Критическая ошибка отправки: " + error.message);
+// Эту функцию мы повесим на кнопку "Открыть бота"
+function triggerTelegramSend() {
+    if (window.Telegram && window.Telegram.WebApp && globalOrderData) {
+        // Отправляем данные в чат (это действие закроет магазин)
+        window.Telegram.WebApp.sendData(JSON.stringify(globalOrderData));
+    } else {
+        // Если что-то пошло не так, просто закрываем
+        window.Telegram.WebApp.close();
     }
 }
 

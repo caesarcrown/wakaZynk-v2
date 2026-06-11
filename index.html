@@ -321,6 +321,11 @@
             <h2 class="text-2xl font-bold">Колесо Фортуны</h2>
             <p class="text-xs text-gray-400 mt-1">Испытай удачу раз в сутки и выигрывай бонусы на баланс!</p>
         </div>
+        <div class="bg-[#121824] p-4 rounded-2xl border border-emerald-500/20 text-left">
+            <p class="text-xs text-gray-400">Активные бонусы</p>
+            <p class="text-2xl font-black text-emerald-400 mt-1"><span id="wheel-active-bonuses">0</span> <span class="text-sm font-normal text-gray-400">сом</span></p>
+            <p id="wheel-bonus-expiry" class="text-[10px] text-gray-500 mt-1">Бонусы действуют 24 часа с момента выигрыша</p>
+        </div>
         <div class="relative w-76 h-76 mx-auto my-4 flex items-center justify-center">
             <div class="absolute top-0 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[25px] border-t-purple-500 z-30 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.5)]"></div>
             <canvas id="wheelCanvas" width="290" height="290" class="rounded-full shadow-[0_0_30px_rgba(168,85,247,0.25)] border-4 border-[#171e2c] transition-transform duration-5000 ease-out"></canvas>
@@ -362,8 +367,9 @@
         </div>
         <div class="bg-[#121824] p-5 rounded-2xl border border-gray-900 flex justify-between items-center">
             <div>
-                <p class="text-xs text-gray-400">Ваш баланс (бонусные сомы)</p>
+                <p class="text-xs text-gray-400">Активные бонусы (24 ч.)</p>
                 <p class="text-3xl font-black mt-1"><span id="user-balance">0</span> <span class="text-sm font-normal text-gray-400">сом</span></p>
+                <p id="profile-bonus-expiry" class="text-[10px] text-gray-500 mt-1"></p>
             </div>
             <div class="w-12 h-12 rounded-xl bg-purple-950/50 flex items-center justify-center text-purple-400 text-lg"><i class="fa-solid fa-wallet"></i></div>
         </div>
@@ -427,8 +433,12 @@
             }
         ];
 
+        const BONUS_TTL_MS = 24 * 60 * 60 * 1000;
         let products = [];
-        let currentBalance = parseInt(localStorage.getItem('waka_balance')) || 0;
+        let currentBalance = 0;
+        let serverBonusEntries = [];
+        let pendingBonusEntries = [];
+        let bonusExpiryTimer = null;
         let cart = JSON.parse(localStorage.getItem('waka_cart')) || [];
         let currentProduct = null;
         let selectedFlavor = null;
@@ -437,6 +447,148 @@
 
         function getDefaultProducts() {
             return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+        }
+
+        function decodeBase64Json(param) {
+            if (!param || !String(param).trim()) return null;
+            try {
+                const normalized = param.replace(/-/g, '+').replace(/_/g, '/');
+                const binary = atob(normalized);
+                const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+                const json = new TextDecoder().decode(bytes);
+                return JSON.parse(json);
+            } catch (e) {
+                console.error('Ошибка декодирования параметра:', e);
+                return null;
+            }
+        }
+
+        function loadBonusesFromBot() {
+            const data = decodeBase64Json(new URLSearchParams(window.location.search).get('bonuses'));
+            if (!data || !Array.isArray(data.entries)) return [];
+            return data.entries
+                .map(entry => ({
+                    amount: parseInt(entry.amount, 10) || 0,
+                    timestamp: parseInt(entry.timestamp, 10) || 0
+                }))
+                .filter(entry => entry.amount > 0 && entry.timestamp > 0);
+        }
+
+        function getPendingBonusesKey() {
+            const userId = getTelegramUserId();
+            return userId ? `waka_pending_bonuses_${userId}` : 'waka_pending_bonuses';
+        }
+
+        function loadPendingBonuses() {
+            try {
+                const raw = localStorage.getItem(getPendingBonusesKey());
+                const data = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(data)) return [];
+                return data
+                    .map(entry => ({
+                        amount: parseInt(entry.amount, 10) || 0,
+                        timestamp: parseInt(entry.timestamp, 10) || 0
+                    }))
+                    .filter(entry => entry.amount > 0 && entry.timestamp > 0);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function savePendingBonuses() {
+            localStorage.setItem(getPendingBonusesKey(), JSON.stringify(pendingBonusEntries));
+        }
+
+        function isBonusEntryActive(entry, nowMs = Date.now()) {
+            return entry.timestamp > 0 && nowMs - entry.timestamp < BONUS_TTL_MS;
+        }
+
+        function getActiveBonusEntries() {
+            const nowMs = Date.now();
+            const combined = [...serverBonusEntries, ...pendingBonusEntries];
+            const seen = new Set();
+            const active = [];
+            combined.forEach(entry => {
+                if (!isBonusEntryActive(entry, nowMs)) return;
+                const key = `${entry.timestamp}:${entry.amount}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                active.push(entry);
+            });
+            return active.sort((a, b) => a.timestamp - b.timestamp);
+        }
+
+        function getActiveBonusBalance() {
+            return getActiveBonusEntries().reduce((sum, entry) => sum + entry.amount, 0);
+        }
+
+        function getNearestBonusExpiryText() {
+            const active = getActiveBonusEntries();
+            if (!active.length) return 'Нет активных бонусов';
+            const nowMs = Date.now();
+            const nearest = active.reduce((min, entry) => {
+                const remaining = BONUS_TTL_MS - (nowMs - entry.timestamp);
+                return remaining < min ? remaining : min;
+            }, Infinity);
+            if (nearest <= 0) return 'Бонусы скоро сгорят';
+            const hours = Math.floor(nearest / (1000 * 60 * 60));
+            const minutes = Math.floor((nearest % (1000 * 60 * 60)) / (1000 * 60));
+            return `Ближайшее сгорание через ${hours} ч. ${minutes} мин.`;
+        }
+
+        function pruneExpiredBonuses() {
+            const nowMs = Date.now();
+            pendingBonusEntries = pendingBonusEntries.filter(entry => isBonusEntryActive(entry, nowMs));
+            savePendingBonuses();
+        }
+
+        function refreshBonusUI() {
+            pruneExpiredBonuses();
+            currentBalance = getActiveBonusBalance();
+            const balanceText = String(currentBalance);
+            const userBalanceEl = document.getElementById('user-balance');
+            const wheelBalanceEl = document.getElementById('wheel-active-bonuses');
+            if (userBalanceEl) userBalanceEl.innerText = balanceText;
+            if (wheelBalanceEl) wheelBalanceEl.innerText = balanceText;
+
+            const expiryText = getNearestBonusExpiryText();
+            const profileExpiryEl = document.getElementById('profile-bonus-expiry');
+            const wheelExpiryEl = document.getElementById('wheel-bonus-expiry');
+            if (profileExpiryEl) profileExpiryEl.innerText = expiryText;
+            if (wheelExpiryEl) {
+                wheelExpiryEl.innerText = currentBalance > 0
+                    ? expiryText
+                    : 'Бонусы действуют 24 часа с момента выигрыша';
+            }
+        }
+
+        function initBonusSystem() {
+            serverBonusEntries = loadBonusesFromBot();
+            pendingBonusEntries = loadPendingBonuses();
+            refreshBonusUI();
+            if (bonusExpiryTimer) clearInterval(bonusExpiryTimer);
+            bonusExpiryTimer = setInterval(refreshBonusUI, 60000);
+        }
+
+        function addWheelBonus(amount) {
+            pendingBonusEntries.push({ amount: parseInt(amount, 10) || 0, timestamp: Date.now() });
+            savePendingBonuses();
+            refreshBonusUI();
+        }
+
+        function getUnsyncedBonusesPayload() {
+            const nowMs = Date.now();
+            return pendingBonusEntries
+                .filter(entry => isBonusEntryActive(entry, nowMs))
+                .map(entry => ({
+                    amount: entry.amount,
+                    timestamp: entry.timestamp
+                }));
+        }
+
+        function clearPendingBonusesAfterSync() {
+            pendingBonusEntries = [];
+            savePendingBonuses();
         }
 
         function loadProductsFromBot() {
@@ -789,7 +941,16 @@
             const total = document.getElementById('summary-total')?.innerText || '0';
             const itemsText = cart.map(i => `${i.name} x${i.qty} (${i.flavor})`).join(', ');
 
-            globalOrderData = { action: 'order', phone, address, items: itemsText || 'Пусто', total };
+            const bonusUsed = parseInt(document.getElementById('summary-discount')?.innerText || '0', 10) || 0;
+            globalOrderData = {
+                action: 'order',
+                phone,
+                address,
+                items: itemsText || 'Пусто',
+                total,
+                bonus_used: bonusUsed,
+                new_bonuses: getUnsyncedBonusesPayload()
+            };
 
             const successModal = document.getElementById('success-modal');
             if (successModal) {
@@ -812,6 +973,7 @@
                 }
                 try {
                     webApp.sendData(JSON.stringify(globalOrderData));
+                    clearPendingBonusesAfterSync();
                 } catch (error) {
                     alert('Ошибка Telegram API: ' + error.message);
                 }
@@ -829,7 +991,11 @@
             });
             document.getElementById('tab-' + tabName).classList.remove('hidden');
             document.getElementById('btn-' + tabName).classList.add('active-tab');
-            if (tabName === 'bonuses') checkWheelTimer();
+            if (tabName === 'bonuses') {
+                refreshBonusUI();
+                checkWheelTimer();
+            }
+            if (tabName === 'profile') refreshBonusUI();
         }
 
         function getTotalStock(product) {
@@ -1062,7 +1228,7 @@
             document.getElementById('cart-modal').classList.add('hidden');
 
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            let discount = currentBalance;
+            let discount = getActiveBonusBalance();
             if (discount > subtotal) discount = subtotal;
             const finalTotal = subtotal - discount;
 
@@ -1191,11 +1357,9 @@
             setTimeout(() => {
                 isSpinning = false;
                 const finalPrize = prizes[winIndex];
-                currentBalance += finalPrize.value;
-                localStorage.setItem('waka_balance', currentBalance);
+                addWheelBonus(finalPrize.value);
                 localStorage.setItem('waka_last_spin', Date.now().toString());
-                document.getElementById('user-balance').innerText = currentBalance;
-                alert(`🎉 Супер! Вы выиграли ${finalPrize.text}! Бонусы начислены.`);
+                alert(`🎉 Супер! Вы выиграли ${finalPrize.text}! Бонусы действуют 24 часа.`);
                 canvas.style.transition = 'none';
                 canvas.style.transform = `rotate(${stopAngle % 360}deg)`;
                 setTimeout(() => { canvas.style.transition = 'transform 5s ease-out'; }, 50);
@@ -1216,13 +1380,13 @@
                 normalizeProductPrices(product);
                 product.status = normalizeProductStatus(product);
             });
-            document.getElementById('user-balance').innerText = currentBalance;
-
             if (tg.initDataUnsafe?.user) {
                 const user = tg.initDataUnsafe.user;
                 document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
                 document.getElementById('user-id').innerText = 'ID: ' + user.id;
             }
+
+            initBonusSystem();
 
             updateAdminUI();
             drawWheel();

@@ -372,28 +372,6 @@
 
         const ADMIN_IDS = new Set(['6466044615', '8729059527']);
 
-        const DEFAULT_PRODUCTS = [
-            {
-                id: 1,
-                name: "ET 35000",
-                price: 2300,
-                oldPrice: 2500,
-                discount: "-8%",
-                status: "instock",
-                img: "https://picsum.photos/id/20/300/300",
-                flavors: [
-                    { name: "Мята", stock: 4 },
-                    { name: "Гавайский Лимонад", stock: 8 },
-                    { name: "Клубника Малина", stock: 9 },
-                    { name: "Черника Малина Ментол", stock: 8 },
-                    { name: "Кислое Яблоко Карамель", stock: 6 },
-                    { name: "Лимонная Ледяная Кола", stock: 5 },
-                    { name: "Сакура виноград", stock: 4 },
-                    { name: "Ледяной Мокко", stock: 5 }
-                ]
-            }
-        ];
-
         let products = [];
         let currentBalance = parseInt(localStorage.getItem('waka_balance')) || 0;
         let cart = JSON.parse(localStorage.getItem('waka_cart')) || [];
@@ -402,33 +380,25 @@
         let currentDetailQty = 1;
         let globalOrderData = null;
 
-        function getDefaultProducts() {
-            return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+        function decodeCatalogParam(b64) {
+            const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+            const binary = atob(padded);
+            const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+            const json = new TextDecoder().decode(bytes);
+            const data = JSON.parse(json);
+            return Array.isArray(data) && data.length > 0 ? data : null;
         }
 
-        function loadProductsFromBot() {
+        function loadProductsFromUrl() {
             const b64 = new URLSearchParams(window.location.search).get('catalog');
-            // Fallback: открытие через иконку слева — catalog в URL нет → DEFAULT_PRODUCTS
-            if (!b64 || !String(b64).trim()) {
-                return getDefaultProducts();
-            }
+            if (!b64 || !String(b64).trim()) return [];
             try {
-                const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
-                const binary = atob(normalized);
-                const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
-                const json = new TextDecoder().decode(bytes);
-                const data = JSON.parse(json);
-                if (Array.isArray(data) && data.length > 0) return data;
+                return decodeCatalogParam(b64) || [];
             } catch (e) {
-                console.error('Ошибка чтения каталога от бота:', e);
+                console.error('Ошибка чтения каталога:', e);
+                return [];
             }
-            return getDefaultProducts();
-        }
-
-        function getBasePrice(product) {
-            if (product.basePrice != null && product.basePrice > 0) return product.basePrice;
-            if (product.oldPrice > product.price) return product.oldPrice;
-            return product.price;
         }
 
         function getDiscountPercent(product) {
@@ -441,9 +411,23 @@
             return 0;
         }
 
-        function applyDiscount(product, percent) {
+        function getBasePrice(product) {
+            if (product.basePrice != null && product.basePrice > 0) return product.basePrice;
+            const percent = getDiscountPercent(product);
+            if (percent > 0 && product.oldPrice > product.price) {
+                const saleFromOld = Math.round(product.oldPrice * (1 - percent / 100));
+                if (Math.abs(saleFromOld - product.price) <= 2) return product.oldPrice;
+            }
+            return product.price;
+        }
+
+        function applyDiscount(product, percent, forcedBase) {
             const p = Math.max(0, Math.min(99, parseInt(percent, 10) || 0));
-            const base = getBasePrice(product);
+            const base = (forcedBase != null && forcedBase > 0)
+                ? forcedBase
+                : getBasePrice(product);
+            if (!base || base <= 0) return;
+
             product.basePrice = base;
             product.discountPercent = p;
             if (p > 0) {
@@ -454,14 +438,19 @@
                 product.discount = '';
                 product.oldPrice = base;
                 product.price = base;
+                product.discountPercent = 0;
             }
         }
 
-        function normalizeProductPrices(product) {
-            if (product.basePrice == null || product.basePrice <= 0) {
-                product.basePrice = product.oldPrice > product.price ? product.oldPrice : product.price;
+        function readAdminBasePrice(pIndex) {
+            const input = document.querySelector(
+                `input[data-action="product-price"][data-pindex="${pIndex}"]`
+            );
+            if (input) {
+                const value = parseInt(input.value, 10);
+                if (!isNaN(value) && value > 0) return value;
             }
-            applyDiscount(product, getDiscountPercent(product));
+            return getBasePrice(products[pIndex]);
         }
 
         function getTelegramUserId() {
@@ -516,6 +505,9 @@
                 return;
             }
             try {
+                products.forEach(function(p) {
+                    applyDiscount(p, getDiscountPercent(p), p.basePrice || getBasePrice(p));
+                });
                 tg.sendData(JSON.stringify({ action: 'save_catalog', products: products }));
             } catch (e) {
                 alert('Ошибка отправки: ' + e.message);
@@ -608,9 +600,7 @@
                 if (action === 'save-changes') saveAdminChanges();
             });
 
-            document.getElementById('admin-content')?.addEventListener('change', (e) => {
-                const el = e.target.closest('[data-action]');
-                if (!el) return;
+            function handleAdminFieldChange(el) {
                 const action = el.dataset.action;
                 const pIndex = parseInt(el.dataset.pindex, 10);
                 const fIndex = parseInt(el.dataset.findex, 10);
@@ -621,6 +611,20 @@
                 if (action === 'product-image') updateProductImage(pIndex, el.value);
                 if (action === 'flavor-name') updateFlavorName(pIndex, fIndex, el.value);
                 if (action === 'flavor-stock') updateFlavorStock(pIndex, fIndex, el.value);
+            }
+
+            document.getElementById('admin-content')?.addEventListener('input', (e) => {
+                const el = e.target.closest('[data-action]');
+                if (!el) return;
+                if (el.dataset.action === 'product-price' || el.dataset.action === 'product-discount') {
+                    handleAdminFieldChange(el);
+                }
+            });
+
+            document.getElementById('admin-content')?.addEventListener('change', (e) => {
+                const el = e.target.closest('[data-action]');
+                if (!el) return;
+                handleAdminFieldChange(el);
             });
         }
 
@@ -644,16 +648,16 @@
         }
 
         function updateProductPrice(pIndex, newPrice) {
-            const price = parseInt(newPrice, 10);
-            if (!isNaN(price) && price > 0) {
-                products[pIndex].basePrice = price;
-                applyDiscount(products[pIndex], getDiscountPercent(products[pIndex]));
+            const base = parseInt(newPrice, 10);
+            if (!isNaN(base) && base > 0) {
+                applyDiscount(products[pIndex], getDiscountPercent(products[pIndex]), base);
             }
             syncAfterProductChange();
         }
 
         function updateProductDiscount(pIndex, percent) {
-            applyDiscount(products[pIndex], percent);
+            const base = readAdminBasePrice(pIndex);
+            applyDiscount(products[pIndex], percent, base);
             syncAfterProductChange();
         }
 
@@ -773,7 +777,10 @@
             const grid = document.getElementById('catalog-grid');
             if (!grid) return;
             if (!Array.isArray(products) || products.length === 0) {
-                products = getDefaultProducts();
+                grid.innerHTML = '<p class="col-span-2 text-center text-gray-500 py-12 text-sm">Откройте магазин через кнопку «Открыть магазин» в боте</p>';
+                const countEl = document.getElementById('product-count');
+                if (countEl) countEl.innerText = '0 товаров';
+                return;
             }
             grid.innerHTML = '';
 
@@ -922,6 +929,7 @@
 
         function updateCartCount() {
             const badge = document.getElementById('cart-count');
+            if (!badge) return;
             const totalItems = cart.reduce((sum, i) => sum + i.qty, 0);
             badge.innerText = totalItems;
             badge.classList.toggle('hidden', totalItems === 0);
@@ -1052,6 +1060,7 @@
         function checkWheelTimer() {
             const lastSpin = localStorage.getItem('waka_last_spin');
             const btn = document.getElementById('spin-btn');
+            if (!btn) return true;
             if (lastSpin) {
                 const passed = Date.now() - parseInt(lastSpin);
                 const dayMs = 24 * 60 * 60 * 1000;
@@ -1111,20 +1120,23 @@
 
         function initApp() {
             if (localStorage.getItem('terms-accepted') === 'true') {
-                document.getElementById('terms-modal').style.display = 'none';
+                const termsModal = document.getElementById('terms-modal');
+                if (termsModal) termsModal.style.display = 'none';
             }
 
-            products = loadProductsFromBot();
-            if (!Array.isArray(products) || products.length === 0) {
-                products = getDefaultProducts();
-            }
-            products.forEach(normalizeProductPrices);
-            document.getElementById('user-balance').innerText = currentBalance;
+            products = loadProductsFromUrl();
+
+            const balanceEl = document.getElementById('user-balance');
+            if (balanceEl) balanceEl.innerText = currentBalance;
 
             if (tg.initDataUnsafe?.user) {
                 const user = tg.initDataUnsafe.user;
-                document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-                document.getElementById('user-id').innerText = 'ID: ' + user.id;
+                const nameEl = document.getElementById('user-name');
+                const idEl = document.getElementById('user-id');
+                if (nameEl) {
+                    nameEl.innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                }
+                if (idEl) idEl.innerText = 'ID: ' + user.id;
             }
 
             updateAdminUI();
@@ -1139,9 +1151,11 @@
 
         bindAdminEvents();
 
-        products = getDefaultProducts();
+        let appBooted = false;
 
         function bootApp() {
+            if (appBooted) return;
+            appBooted = true;
             initApp();
             updateAdminUI();
             setTimeout(updateAdminUI, 200);
@@ -1149,22 +1163,11 @@
             setTimeout(updateAdminUI, 2000);
         }
 
-        function showCatalogFallback() {
-            if (!Array.isArray(products) || products.length === 0) {
-                products = getDefaultProducts();
-            }
-            renderProducts();
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', showCatalogFallback);
+        if (typeof tg.ready === 'function') {
+            tg.ready(bootApp);
         } else {
-            showCatalogFallback();
+            bootApp();
         }
-
-        if (typeof tg.ready === 'function') tg.ready(bootApp);
-        else bootApp();
-        window.addEventListener('load', bootApp);
     </script>
 </body>
 </html>

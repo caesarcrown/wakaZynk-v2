@@ -402,9 +402,16 @@
         let currentDetailQty = 1;
         let globalOrderData = null;
 
+        function getDefaultProducts() {
+            return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+        }
+
         function loadProductsFromBot() {
             const b64 = new URLSearchParams(window.location.search).get('catalog');
-            if (!b64) return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+            // Fallback: открытие через иконку слева — catalog в URL нет → DEFAULT_PRODUCTS
+            if (!b64 || !String(b64).trim()) {
+                return getDefaultProducts();
+            }
             try {
                 const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
                 const binary = atob(normalized);
@@ -415,7 +422,29 @@
             } catch (e) {
                 console.error('Ошибка чтения каталога от бота:', e);
             }
-            return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+            return getDefaultProducts();
+        }
+
+        function getDiscountPercent(product) {
+            if (product.discountPercent != null) return Number(product.discountPercent) || 0;
+            const match = String(product.discount || '').match(/(\d+)/);
+            if (match) return parseInt(match[1], 10);
+            if (product.oldPrice > product.price) {
+                return Math.round((1 - product.price / product.oldPrice) * 100);
+            }
+            return 0;
+        }
+
+        function applyDiscount(product, percent) {
+            const p = Math.max(0, Math.min(99, parseInt(percent, 10) || 0));
+            product.discountPercent = p;
+            if (p > 0) {
+                product.discount = '-' + p + '%';
+                product.oldPrice = Math.round(product.price / (1 - p / 100));
+            } else {
+                product.discount = '';
+                product.oldPrice = product.price;
+            }
         }
 
         function getTelegramUserId() {
@@ -470,6 +499,7 @@
                 return;
             }
             try {
+                products.forEach(p => applyDiscount(p, getDiscountPercent(p)));
                 tg.sendData(JSON.stringify({ action: 'save_catalog', products: products }));
             } catch (e) {
                 alert('Ошибка отправки: ' + e.message);
@@ -503,11 +533,16 @@
                             <input type="text" value="${escapeHtml(product.name)}"
                                    data-action="product-name" data-pindex="${pIndex}"
                                    class="w-full bg-zinc-800 text-lg font-bold rounded-xl px-3 py-2 outline-none">
-                            <div class="flex gap-2 items-center">
+                            <div class="flex gap-2 items-center flex-wrap">
                                 <input type="number" value="${product.price}"
                                        data-action="product-price" data-pindex="${pIndex}"
                                        class="w-28 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none">
                                 <span class="text-xs text-gray-400">сом</span>
+                                <input type="number" value="${getDiscountPercent(product)}" min="0" max="99"
+                                       data-action="product-discount" data-pindex="${pIndex}"
+                                       class="w-20 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none"
+                                       placeholder="%">
+                                <span class="text-xs text-gray-400">Скидка (%)</span>
                             </div>
                             <input type="text" value="${escapeHtml(product.img || '')}" placeholder="Ссылка на картинку"
                                    data-action="product-image" data-pindex="${pIndex}"
@@ -566,6 +601,7 @@
 
                 if (action === 'product-name') updateProductName(pIndex, el.value);
                 if (action === 'product-price') updateProductPrice(pIndex, el.value);
+                if (action === 'product-discount') updateProductDiscount(pIndex, el.value);
                 if (action === 'product-image') updateProductImage(pIndex, el.value);
                 if (action === 'flavor-name') updateFlavorName(pIndex, fIndex, el.value);
                 if (action === 'flavor-stock') updateFlavorStock(pIndex, fIndex, el.value);
@@ -593,7 +629,15 @@
 
         function updateProductPrice(pIndex, newPrice) {
             const price = parseInt(newPrice, 10);
-            if (!isNaN(price) && price > 0) products[pIndex].price = price;
+            if (!isNaN(price) && price > 0) {
+                products[pIndex].price = price;
+                applyDiscount(products[pIndex], getDiscountPercent(products[pIndex]));
+            }
+            syncAfterProductChange();
+        }
+
+        function updateProductDiscount(pIndex, percent) {
+            applyDiscount(products[pIndex], percent);
             syncAfterProductChange();
         }
 
@@ -710,6 +754,9 @@
         function renderProducts() {
             const grid = document.getElementById('catalog-grid');
             if (!grid) return;
+            if (!Array.isArray(products) || products.length === 0) {
+                products = getDefaultProducts();
+            }
             grid.innerHTML = '';
 
             const count = products.length;
@@ -721,8 +768,9 @@
                 const card = document.createElement('div');
                 card.className = 'bg-[#121824] rounded-2xl border border-gray-900 overflow-hidden relative flex flex-col cursor-pointer';
                 card.onclick = () => openDetails(p.id);
+                const hasDiscount = p.discount && p.oldPrice > p.price;
                 card.innerHTML = `
-                    <span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg z-10">${p.discount || ''}</span>
+                    ${hasDiscount ? `<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg z-10">${p.discount}</span>` : ''}
                     <span class="absolute top-2 right-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded-lg z-10">В наличии</span>
                     <div class="w-full aspect-square bg-[#171e2c] flex items-center justify-center p-4">
                         <img src="${p.img}" alt="${escapeHtml(p.name)}" class="rounded-xl object-cover max-h-full">
@@ -733,9 +781,12 @@
                             <p class="text-[10px] text-gray-400 mt-1">📦 Всего: ${totalStock} шт.</p>
                         </div>
                         <div class="flex items-center justify-between">
-                            <div class="flex items-baseline space-x-0.5">
-                                <span class="text-base font-black">${p.price}</span>
-                                <span class="text-[9px] text-gray-400">сом</span>
+                            <div class="flex flex-col">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-base font-black">${p.price}</span>
+                                    <span class="text-[9px] text-gray-400">сом</span>
+                                </div>
+                                ${hasDiscount ? `<span class="text-[10px] line-through text-gray-500">${p.oldPrice} сом</span>` : ''}
                             </div>
                             <button class="bg-purple-600 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-90">Выбрать</button>
                         </div>
@@ -752,8 +803,11 @@
             currentProduct = updated;
             document.getElementById('detail-name').innerText = currentProduct.name;
             document.getElementById('detail-price').innerText = currentProduct.price;
-            if (document.getElementById('detail-old-price')) {
-                document.getElementById('detail-old-price').innerText = (currentProduct.oldPrice || '') + ' сом';
+            const oldPriceEl = document.getElementById('detail-old-price');
+            if (oldPriceEl) {
+                const showOld = currentProduct.oldPrice > currentProduct.price && currentProduct.discount;
+                oldPriceEl.innerText = showOld ? currentProduct.oldPrice + ' сом' : '';
+                oldPriceEl.style.display = showOld ? '' : 'none';
             }
             const totalStock = getTotalStock(currentProduct);
             document.getElementById('detail-status').innerText = `🟢 В наличии: ${totalStock} шт.`;
@@ -1043,6 +1097,9 @@
             }
 
             products = loadProductsFromBot();
+            if (!Array.isArray(products) || products.length === 0) {
+                products = getDefaultProducts();
+            }
             document.getElementById('user-balance').innerText = currentBalance;
 
             if (tg.initDataUnsafe?.user) {

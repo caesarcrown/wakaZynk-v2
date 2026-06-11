@@ -367,8 +367,8 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        const tg = window.Telegram?.WebApp || {};
+        if (typeof tg.expand === 'function') tg.expand();
 
         const ADMIN_IDS = new Set(['6466044615', '8729059527']);
 
@@ -425,6 +425,12 @@
             return getDefaultProducts();
         }
 
+        function getBasePrice(product) {
+            if (product.basePrice != null && product.basePrice > 0) return product.basePrice;
+            if (product.oldPrice > product.price) return product.oldPrice;
+            return product.price;
+        }
+
         function getDiscountPercent(product) {
             if (product.discountPercent != null) return Number(product.discountPercent) || 0;
             const match = String(product.discount || '').match(/(\d+)/);
@@ -437,14 +443,25 @@
 
         function applyDiscount(product, percent) {
             const p = Math.max(0, Math.min(99, parseInt(percent, 10) || 0));
+            const base = getBasePrice(product);
+            product.basePrice = base;
             product.discountPercent = p;
             if (p > 0) {
                 product.discount = '-' + p + '%';
-                product.oldPrice = Math.round(product.price / (1 - p / 100));
+                product.oldPrice = base;
+                product.price = Math.round(base * (1 - p / 100));
             } else {
                 product.discount = '';
-                product.oldPrice = product.price;
+                product.oldPrice = base;
+                product.price = base;
             }
+        }
+
+        function normalizeProductPrices(product) {
+            if (product.basePrice == null || product.basePrice <= 0) {
+                product.basePrice = product.oldPrice > product.price ? product.oldPrice : product.price;
+            }
+            applyDiscount(product, getDiscountPercent(product));
         }
 
         function getTelegramUserId() {
@@ -499,7 +516,6 @@
                 return;
             }
             try {
-                products.forEach(p => applyDiscount(p, getDiscountPercent(p)));
                 tg.sendData(JSON.stringify({ action: 'save_catalog', products: products }));
             } catch (e) {
                 alert('Ошибка отправки: ' + e.message);
@@ -534,7 +550,7 @@
                                    data-action="product-name" data-pindex="${pIndex}"
                                    class="w-full bg-zinc-800 text-lg font-bold rounded-xl px-3 py-2 outline-none">
                             <div class="flex gap-2 items-center flex-wrap">
-                                <input type="number" value="${product.price}"
+                                <input type="number" value="${getBasePrice(product)}"
                                        data-action="product-price" data-pindex="${pIndex}"
                                        class="w-28 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none">
                                 <span class="text-xs text-gray-400">сом</span>
@@ -630,7 +646,7 @@
         function updateProductPrice(pIndex, newPrice) {
             const price = parseInt(newPrice, 10);
             if (!isNaN(price) && price > 0) {
-                products[pIndex].price = price;
+                products[pIndex].basePrice = price;
                 applyDiscount(products[pIndex], getDiscountPercent(products[pIndex]));
             }
             syncAfterProductChange();
@@ -681,8 +697,10 @@
                 id: Date.now(),
                 name: name.trim(),
                 price: price,
-                oldPrice: price + 300,
-                discount: '-10%',
+                basePrice: price,
+                oldPrice: price,
+                discount: '',
+                discountPercent: 0,
                 status: 'instock',
                 img: 'https://picsum.photos/id/' + (Math.floor(Math.random() * 100) + 10) + '/300/300',
                 flavors: []
@@ -1100,6 +1118,7 @@
             if (!Array.isArray(products) || products.length === 0) {
                 products = getDefaultProducts();
             }
+            products.forEach(normalizeProductPrices);
             document.getElementById('user-balance').innerText = currentBalance;
 
             if (tg.initDataUnsafe?.user) {
@@ -1120,12 +1139,27 @@
 
         bindAdminEvents();
 
+        products = getDefaultProducts();
+
         function bootApp() {
             initApp();
             updateAdminUI();
             setTimeout(updateAdminUI, 200);
             setTimeout(updateAdminUI, 800);
             setTimeout(updateAdminUI, 2000);
+        }
+
+        function showCatalogFallback() {
+            if (!Array.isArray(products) || products.length === 0) {
+                products = getDefaultProducts();
+            }
+            renderProducts();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', showCatalogFallback);
+        } else {
+            showCatalogFallback();
         }
 
         if (typeof tg.ready === 'function') tg.ready(bootApp);

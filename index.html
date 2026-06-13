@@ -150,6 +150,118 @@
         .product-card-soon {
             opacity: 0.9;
         }
+        .catalog-filter {
+            flex: 1;
+            border: 1px solid #20283a;
+            background: #121824;
+            color: #8b95a7;
+            padding: 10px 8px;
+            border-radius: 13px;
+            font-size: 12px;
+            font-weight: 700;
+            transition: 0.2s ease;
+        }
+        .catalog-filter.active {
+            color: #fff;
+            border-color: rgba(168, 85, 247, 0.7);
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.9), rgba(79, 70, 229, 0.9));
+            box-shadow: 0 8px 24px rgba(126, 34, 206, 0.2);
+        }
+        .app-page {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            overflow-y: auto;
+            background:
+                radial-gradient(circle at 90% -10%, rgba(126, 34, 206, 0.2), transparent 35%),
+                #0b0e14;
+        }
+        .app-page.open { display: block; }
+        .page-shell { width: 100%; max-width: 520px; margin: 0 auto; padding: 18px 16px 36px; }
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 8px 0 18px;
+            background: linear-gradient(#0b0e14 75%, transparent);
+        }
+        .page-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 13px;
+            border: 1px solid #232b3d;
+            background: #151b27;
+            color: #fff;
+        }
+        .menu-card {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 15px;
+            border: 1px solid #20283a;
+            border-radius: 18px;
+            background: #121824;
+            text-align: left;
+        }
+        .menu-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #c084fc;
+            background: rgba(126, 34, 206, 0.18);
+        }
+        .admin-stat-card {
+            min-height: 116px;
+            border: 1px solid #20283a;
+            border-radius: 20px;
+            padding: 15px;
+            background: linear-gradient(145deg, #151b27, #10151f);
+        }
+        .admin-tab {
+            min-width: max-content;
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: #7f899c;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .admin-tab.active { color: #fff; background: #7c3aed; }
+        .admin-order-filter {
+            min-width: max-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid #283144;
+            color: #8b95a7;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .admin-order-filter.active {
+            color: #fff;
+            border-color: rgba(168, 85, 247, 0.6);
+            background: rgba(126, 34, 206, 0.28);
+        }
+        .order-card {
+            border: 1px solid #20283a;
+            border-radius: 18px;
+            padding: 15px;
+            background: #121824;
+        }
+        .empty-state {
+            padding: 42px 20px;
+            border: 1px dashed #283144;
+            border-radius: 20px;
+            color: #778196;
+            text-align: center;
+            background: rgba(18, 24, 36, 0.55);
+        }
     </style>
 </head>
 <body class="select-none overflow-x-hidden pb-24">
@@ -313,6 +425,11 @@
             <h2 class="text-2xl font-bold">Каталог</h2>
             <span id="product-count" class="text-xs text-gray-400">1 товар</span>
         </div>
+        <div class="flex gap-2" id="catalog-filters">
+            <button class="catalog-filter active" data-catalog-filter="all">Все</button>
+            <button class="catalog-filter" data-catalog-filter="instock">В наличии</button>
+            <button class="catalog-filter" data-catalog-filter="soon">Скоро</button>
+        </div>
         <div id="catalog-grid" class="grid grid-cols-2 gap-3"></div>
     </main>
 
@@ -358,22 +475,82 @@
     </main>
 
     <main id="tab-profile" class="p-4 hidden space-y-4">
-        <div class="flex items-center space-x-4 bg-[#121824] p-4 rounded-2xl border border-gray-900">
-            <div class="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-user"></i></div>
-            <div>
+        <div class="flex items-center space-x-4 bg-gradient-to-br from-[#171e2c] to-[#10151f] p-4 rounded-3xl border border-purple-500/15">
+            <div id="user-avatar" class="w-16 h-16 rounded-2xl bg-purple-600 flex items-center justify-center text-xl font-bold overflow-hidden shrink-0"><i class="fa-solid fa-user"></i></div>
+            <div class="min-w-0">
                 <h3 id="user-name" class="font-bold text-base">Пользователь</h3>
-                <p id="user-id" class="text-xs text-gray-500">ID: 000000000</p>
+                <p id="user-username" class="text-xs text-purple-400 mt-0.5">@telegram</p>
+                <p id="user-id" class="text-[11px] text-gray-500 mt-1">Telegram ID: 000000000</p>
             </div>
         </div>
-        <div class="bg-[#121824] p-5 rounded-2xl border border-gray-900 flex justify-between items-center">
-            <div>
-                <p class="text-xs text-gray-400">Активные бонусы (24 ч.)</p>
-                <p class="text-3xl font-black mt-1"><span id="user-balance">0</span> <span class="text-sm font-normal text-gray-400">сом</span></p>
-                <p id="profile-bonus-expiry" class="text-[10px] text-gray-500 mt-1"></p>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-[#121824] p-4 rounded-2xl border border-gray-900">
+                <div class="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center mb-4"><i class="fa-solid fa-box"></i></div>
+                <p class="text-[11px] text-gray-400">Всего заказов</p>
+                <p id="profile-orders-count" class="text-2xl font-black mt-1">0</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-purple-950/50 flex items-center justify-center text-purple-400 text-lg"><i class="fa-solid fa-wallet"></i></div>
+            <div class="bg-[#121824] p-4 rounded-2xl border border-gray-900">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-4"><i class="fa-solid fa-wallet"></i></div>
+                <p class="text-[11px] text-gray-400">Активные бонусы</p>
+                <p class="text-2xl font-black mt-1"><span id="user-balance">0</span> <span class="text-xs font-normal text-gray-400">сом</span></p>
+            </div>
+        </div>
+        <div class="bg-[#121824] p-4 rounded-2xl border border-gray-900">
+            <div class="flex justify-between items-center">
+                <p class="text-xs text-gray-400">Срок действия бонусов</p>
+                <i class="fa-regular fa-clock text-purple-400"></i>
+            </div>
+            <p id="profile-bonus-expiry" class="text-[11px] text-gray-500 mt-2"></p>
+        </div>
+        <div class="space-y-3">
+            <button onclick="openAppPage('orders-page')" class="menu-card">
+                <span class="menu-card-icon"><i class="fa-solid fa-receipt"></i></span>
+                <span class="flex-1"><strong class="text-sm block">История заказов</strong><small class="text-gray-500">Все ваши покупки и статусы</small></span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-600"></i>
+            </button>
+            <button onclick="openReferralPage()" class="menu-card">
+                <span class="menu-card-icon"><i class="fa-solid fa-user-group"></i></span>
+                <span class="flex-1"><strong class="text-sm block">Реферальная программа</strong><small class="text-gray-500">Приглашайте друзей и получайте бонусы</small></span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-600"></i>
+            </button>
         </div>
     </main>
+
+    <section id="orders-page" class="app-page">
+        <div class="page-shell">
+            <div class="page-header">
+                <button class="page-back" onclick="closeAppPage('orders-page')"><i class="fa-solid fa-arrow-left"></i></button>
+                <div><h2 class="text-xl font-black">История заказов</h2><p class="text-xs text-gray-500">Ваши последние покупки</p></div>
+            </div>
+            <div id="orders-history-list" class="space-y-3"></div>
+        </div>
+    </section>
+
+    <section id="referral-page" class="app-page">
+        <div class="page-shell">
+            <div class="page-header">
+                <button class="page-back" onclick="closeAppPage('referral-page')"><i class="fa-solid fa-arrow-left"></i></button>
+                <div><h2 class="text-xl font-black">Реферальная программа</h2><p class="text-xs text-gray-500">Бонусы вместе с друзьями</p></div>
+            </div>
+            <div class="rounded-3xl p-6 border border-purple-500/20 bg-gradient-to-br from-purple-700/30 to-indigo-900/20 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-2xl mx-auto"><i class="fa-solid fa-gift"></i></div>
+                <h3 class="text-2xl font-black mt-5">Приглашай друзей</h3>
+                <p class="text-sm text-gray-400 mt-2">Делитесь своей ссылкой и получайте бонусы за активных друзей.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <div class="admin-stat-card"><p class="text-xs text-gray-500">Приглашено</p><p id="referral-invited" class="text-3xl font-black mt-3">0</p><p class="text-[10px] text-gray-600 mt-1">друзей</p></div>
+                <div class="admin-stat-card"><p class="text-xs text-gray-500">Заработано</p><p id="referral-earned" class="text-3xl font-black mt-3">0</p><p class="text-[10px] text-gray-600 mt-1">сом</p></div>
+            </div>
+            <div class="mt-4 bg-[#121824] border border-gray-800 rounded-2xl p-4">
+                <p class="text-xs text-gray-500 mb-2">Ваша реферальная ссылка</p>
+                <div class="flex gap-2">
+                    <input id="referral-link" readonly class="min-w-0 flex-1 bg-[#0b0e14] border border-gray-800 rounded-xl px-3 text-xs text-gray-300">
+                    <button onclick="copyReferralLink()" class="w-12 h-12 rounded-xl bg-purple-600"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <button onclick="shareReferralLink()" class="w-full mt-3 py-3.5 rounded-xl bg-white text-black font-bold text-sm"><i class="fa-solid fa-share-nodes mr-2"></i>Поделиться</button>
+            </div>
+        </div>
+    </section>
 
     <nav class="fixed bottom-0 inset-x-0 bg-[#0f131c]/95 backdrop-blur-md border-t border-gray-900 flex justify-around py-3 text-gray-500 text-xs font-semibold z-40">
         <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
@@ -396,10 +573,17 @@
 
     <!-- Админ-панель -->
     <div id="admin-panel">
-        <div class="p-5 max-w-md mx-auto pb-10">
-            <div class="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
-                <h2 class="text-2xl font-bold">Админка</h2>
-                <button id="btn-admin-close" class="text-3xl text-zinc-400 hover:text-white leading-none">&times;</button>
+        <div class="p-4 max-w-xl mx-auto pb-10">
+            <div class="flex items-center justify-between mb-5 pt-1">
+                <div><p class="text-xs text-purple-400 font-bold uppercase tracking-widest">WAKA ENERGY</p><h2 class="text-2xl font-black mt-1">Админ-панель</h2></div>
+                <button id="btn-admin-close" class="w-10 h-10 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white text-xl">&times;</button>
+            </div>
+            <div id="admin-stats" class="grid grid-cols-2 gap-3 mb-5"></div>
+            <div id="admin-tabs" class="flex gap-2 overflow-x-auto bg-[#10151f] border border-gray-900 rounded-2xl p-1.5 mb-5">
+                <button class="admin-tab active" data-admin-tab="orders">Заказы</button>
+                <button class="admin-tab" data-admin-tab="stats">Статистика</button>
+                <button class="admin-tab" data-admin-tab="products">Товары</button>
+                <button class="admin-tab" data-admin-tab="users">Юзеры</button>
             </div>
             <div id="admin-content"></div>
         </div>
@@ -444,6 +628,10 @@
         let selectedFlavor = null;
         let currentDetailQty = 1;
         let globalOrderData = null;
+        let currentCatalogFilter = 'all';
+        let currentAdminTab = 'orders';
+        let currentAdminOrderFilter = 'all';
+        let adminOrderSearch = '';
 
         function getDefaultProducts() {
             return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
@@ -591,23 +779,57 @@
             savePendingBonuses();
         }
 
-        function loadProductsFromBot() {
-            const b64 = new URLSearchParams(window.location.search).get('catalog');
-            // Fallback: открытие через иконку слева — catalog в URL нет → DEFAULT_PRODUCTS
-            if (!b64 || !String(b64).trim()) {
-                return getDefaultProducts();
-            }
+        function cacheCatalog(data) {
+            if (!Array.isArray(data) || !data.length) return;
             try {
-                const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
-                const binary = atob(normalized);
-                const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
-                const json = new TextDecoder().decode(bytes);
-                const data = JSON.parse(json);
-                if (Array.isArray(data) && data.length > 0) return data;
+                localStorage.setItem('waka_catalog_cache', JSON.stringify(data));
+                localStorage.setItem('waka_catalog_cache_time', String(Date.now()));
+            } catch (e) {}
+        }
+
+        function loadCachedCatalog() {
+            try {
+                const data = JSON.parse(localStorage.getItem('waka_catalog_cache') || 'null');
+                return Array.isArray(data) && data.length ? data : null;
             } catch (e) {
-                console.error('Ошибка чтения каталога от бота:', e);
+                return null;
             }
-            return getDefaultProducts();
+        }
+
+        async function loadProductsFromBot() {
+            const b64 = new URLSearchParams(window.location.search).get('catalog');
+            if (b64 && String(b64).trim()) {
+                try {
+                    const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
+                    const binary = atob(normalized);
+                    const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+                    const data = JSON.parse(new TextDecoder().decode(bytes));
+                    if (Array.isArray(data) && data.length > 0) {
+                        cacheCatalog(data);
+                        return data;
+                    }
+                } catch (e) {
+                    console.error('Ошибка чтения каталога от бота:', e);
+                }
+            }
+
+            try {
+                const response = await fetch(`./catalog.json?v=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        cacheCatalog(data);
+                        return data;
+                    }
+                }
+            } catch (e) {
+                console.warn('Свежий catalog.json недоступен, используется локальная копия.');
+            }
+
+            return loadCachedCatalog() || getDefaultProducts();
         }
 
         function getBasePrice(product) {
@@ -683,6 +905,140 @@
             return null;
         }
 
+        function getOrdersStorageKey() {
+            return `waka_orders_${getTelegramUserId() || 'guest'}`;
+        }
+
+        function getStoredOrders() {
+            try {
+                const data = JSON.parse(localStorage.getItem(getOrdersStorageKey()) || '[]');
+                return Array.isArray(data) ? data : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveStoredOrders(orders) {
+            localStorage.setItem(getOrdersStorageKey(), JSON.stringify(orders.slice(0, 100)));
+            updateProfileStats();
+        }
+
+        function createLocalOrder(total, phone, address) {
+            const code = 'WK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+            const order = {
+                code,
+                createdAt: new Date().toISOString(),
+                status: 'processing',
+                phone,
+                address,
+                total: parseInt(total, 10) || 0,
+                userId: getTelegramUserId() || 'guest',
+                userName: document.getElementById('user-name')?.innerText || 'Пользователь',
+                items: cart.map(item => ({
+                    name: item.name,
+                    flavor: item.flavor,
+                    qty: item.qty,
+                    price: item.price
+                }))
+            };
+            saveStoredOrders([order, ...getStoredOrders()]);
+            return order;
+        }
+
+        function getOrderStatusMeta(status) {
+            const statuses = {
+                processing: { label: 'В обработке', className: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },
+                confirmed: { label: 'Подтвержден', className: 'text-blue-300 bg-blue-500/10 border-blue-500/20' },
+                delivery: { label: 'Доставляется', className: 'text-purple-300 bg-purple-500/10 border-purple-500/20' },
+                completed: { label: 'Завершен', className: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' }
+            };
+            return statuses[status] || statuses.processing;
+        }
+
+        function formatOrderDate(value) {
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Дата не указана';
+            return date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function renderOrdersHistory() {
+            const container = document.getElementById('orders-history-list');
+            if (!container) return;
+            const orders = getStoredOrders();
+            document.getElementById('profile-orders-count').innerText = orders.length;
+            if (!orders.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-receipt text-2xl mb-3"></i><p class="font-bold text-sm text-gray-400">Заказов пока нет</p><p class="text-xs mt-1">После оформления они появятся здесь.</p></div>';
+                return;
+            }
+            container.innerHTML = orders.map(order => {
+                const status = getOrderStatusMeta(order.status);
+                const items = (order.items || []).map(item =>
+                    `<li class="flex justify-between gap-3"><span>${escapeHtml(item.name)} · ${escapeHtml(item.flavor || '')}</span><b class="whitespace-nowrap">×${item.qty}</b></li>`
+                ).join('');
+                return `<article class="order-card">
+                    <div class="flex justify-between items-start gap-3">
+                        <div><p class="font-black">${escapeHtml(order.code)}</p><p class="text-[10px] text-gray-500 mt-1">${formatOrderDate(order.createdAt)}</p></div>
+                        <span class="text-[10px] font-bold border rounded-lg px-2 py-1 ${status.className}">${status.label}</span>
+                    </div>
+                    <ul class="text-xs text-gray-400 space-y-1.5 mt-4">${items}</ul>
+                    <div class="flex justify-between border-t border-gray-800 mt-4 pt-3"><span class="text-xs text-gray-500">Итого</span><strong>${order.total} сом</strong></div>
+                </article>`;
+            }).join('');
+        }
+
+        function updateProfileStats() {
+            const count = document.getElementById('profile-orders-count');
+            if (count) count.innerText = getStoredOrders().length;
+        }
+
+        function openAppPage(pageId) {
+            document.getElementById(pageId)?.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            if (pageId === 'orders-page') renderOrdersHistory();
+        }
+
+        function closeAppPage(pageId) {
+            document.getElementById(pageId)?.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function getReferralLink() {
+            const userId = getTelegramUserId() || 'guest';
+            return `${window.location.origin}${window.location.pathname}?ref=${encodeURIComponent(userId)}`;
+        }
+
+        function openReferralPage() {
+            const link = document.getElementById('referral-link');
+            if (link) link.value = getReferralLink();
+            document.getElementById('referral-invited').innerText = localStorage.getItem('waka_referral_invited') || '0';
+            document.getElementById('referral-earned').innerText = localStorage.getItem('waka_referral_earned') || '0';
+            openAppPage('referral-page');
+        }
+
+        async function copyReferralLink() {
+            const link = getReferralLink();
+            try {
+                await navigator.clipboard.writeText(link);
+                if (tg.showPopup) tg.showPopup({ message: 'Ссылка скопирована' });
+                else alert('Ссылка скопирована');
+            } catch (e) {
+                document.getElementById('referral-link')?.select();
+            }
+        }
+
+        function shareReferralLink() {
+            const text = 'Присоединяйся к WAKA ENERGY!';
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(getReferralLink())}&text=${encodeURIComponent(text)}`;
+            if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink(shareUrl);
+            else window.open(shareUrl, '_blank');
+        }
+
         function isAdminUser() {
             const userId = getTelegramUserId();
             if (userId && ADMIN_IDS.has(userId)) return true;
@@ -732,7 +1088,112 @@
             document.body.style.overflow = '';
         }
 
+        function renderAdminStats() {
+            const stats = document.getElementById('admin-stats');
+            if (!stats) return;
+            const orders = getStoredOrders();
+            const now = new Date();
+            const todayRevenue = orders
+                .filter(order => new Date(order.createdAt).toDateString() === now.toDateString())
+                .reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+            const monthRevenue = orders
+                .filter(order => {
+                    const date = new Date(order.createdAt);
+                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                })
+                .reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+            const clients = new Set(orders.map(order => order.userId || 'guest')).size || (getTelegramUserId() ? 1 : 0);
+            stats.innerHTML = `
+                <div class="admin-stat-card"><div class="flex justify-between text-purple-400"><i class="fa-solid fa-receipt"></i><span class="text-[10px] text-gray-600">ВСЕГО</span></div><p class="text-3xl font-black mt-4">${orders.length}</p><p class="text-xs text-gray-500 mt-1">Заказы</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-emerald-400"><i class="fa-solid fa-arrow-trend-up"></i><span class="text-[10px] text-gray-600">СЕГОДНЯ</span></div><p class="text-2xl font-black mt-4">${Math.round(todayRevenue * 0.3)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-blue-400"><i class="fa-solid fa-users"></i><span class="text-[10px] text-gray-600">БАЗА</span></div><p class="text-3xl font-black mt-4">${clients}</p><p class="text-xs text-gray-500 mt-1">Клиенты</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-pink-400"><i class="fa-solid fa-chart-column"></i><span class="text-[10px] text-gray-600">МЕСЯЦ</span></div><p class="text-2xl font-black mt-4">${Math.round(monthRevenue * 0.3)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>`;
+        }
+
+        function renderAdminOrders() {
+            const content = document.getElementById('admin-content');
+            const filters = [
+                ['all', 'Все'],
+                ['processing', 'В обработке'],
+                ['confirmed', 'Подтвержден'],
+                ['delivery', 'Доставляется']
+            ];
+            let orders = getStoredOrders();
+            if (currentAdminOrderFilter !== 'all') {
+                orders = orders.filter(order => order.status === currentAdminOrderFilter);
+            }
+            if (adminOrderSearch.trim()) {
+                const query = adminOrderSearch.trim().toLowerCase();
+                orders = orders.filter(order =>
+                    String(order.code).toLowerCase().includes(query)
+                    || String(order.userName).toLowerCase().includes(query)
+                    || String(order.phone).toLowerCase().includes(query)
+                );
+            }
+            const cards = orders.length ? orders.map(order => {
+                const status = getOrderStatusMeta(order.status);
+                const itemCount = (order.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+                return `<article class="order-card">
+                    <div class="flex justify-between gap-3">
+                        <div><p class="font-black">${escapeHtml(order.code)}</p><p class="text-[10px] text-gray-500 mt-1">${formatOrderDate(order.createdAt)}</p></div>
+                        <span class="h-fit text-[10px] font-bold border rounded-lg px-2 py-1 ${status.className}">${status.label}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-xs">
+                        <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-gray-600">Клиент</p><p class="font-bold mt-1 truncate">${escapeHtml(order.userName || 'Пользователь')}</p></div>
+                        <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-gray-600">Товары</p><p class="font-bold mt-1">${itemCount} шт.</p></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-4"><strong>${order.total} сом</strong><select data-action="order-status" data-order-code="${escapeHtml(order.code)}" class="bg-[#1b2332] rounded-xl px-3 py-2 text-xs outline-none"><option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option><option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Подтвержден</option><option value="delivery" ${order.status === 'delivery' ? 'selected' : ''}>Доставляется</option><option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершен</option></select></div>
+                </article>`;
+            }).join('') : '<div class="empty-state"><i class="fa-solid fa-magnifying-glass text-xl mb-3"></i><p class="font-bold text-sm">Заказы не найдены</p></div>';
+
+            content.innerHTML = `
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 text-sm"></i>
+                    <input id="admin-order-search" value="${escapeHtml(adminOrderSearch)}" placeholder="Поиск по коду, клиенту, телефону" class="w-full bg-[#121824] border border-gray-800 rounded-2xl py-3.5 pl-11 pr-4 text-sm outline-none focus:border-purple-500">
+                </div>
+                <div class="flex gap-2 overflow-x-auto mb-4">${filters.map(([value, label]) => `<button class="admin-order-filter ${currentAdminOrderFilter === value ? 'active' : ''}" data-order-filter="${value}">${label}</button>`).join('')}</div>
+                <div class="space-y-3">${cards}</div>`;
+        }
+
+        function renderAdminAnalytics() {
+            const content = document.getElementById('admin-content');
+            const orders = getStoredOrders();
+            const revenue = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+            const average = orders.length ? Math.round(revenue / orders.length) : 0;
+            content.innerHTML = `
+                <div class="space-y-3">
+                    <div class="order-card"><p class="text-xs text-gray-500">Общая выручка</p><p class="text-3xl font-black mt-2">${revenue} <small class="text-sm text-gray-500">сом</small></p></div>
+                    <div class="order-card"><p class="text-xs text-gray-500">Средний чек</p><p class="text-3xl font-black mt-2">${average} <small class="text-sm text-gray-500">сом</small></p></div>
+                    <div class="order-card"><p class="text-xs text-gray-500 mb-3">Статусы заказов</p>${['processing', 'confirmed', 'delivery', 'completed'].map(value => { const meta = getOrderStatusMeta(value); const count = orders.filter(order => order.status === value).length; return `<div class="flex justify-between py-2 border-b border-gray-900 last:border-0"><span class="text-sm ${meta.className.split(' ')[0]}">${meta.label}</span><b>${count}</b></div>`; }).join('')}</div>
+                </div>`;
+        }
+
+        function renderAdminUsers() {
+            const content = document.getElementById('admin-content');
+            const orders = getStoredOrders();
+            const user = tg?.initDataUnsafe?.user || {};
+            const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Пользователь';
+            content.innerHTML = `
+                <div class="order-card flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center"><i class="fa-solid fa-user"></i></div>
+                    <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml(name)}</p><p class="text-[11px] text-gray-500">ID: ${escapeHtml(getTelegramUserId() || 'не определён')}</p></div>
+                    <div class="text-right"><p class="font-black">${orders.length}</p><p class="text-[10px] text-gray-600">заказов</p></div>
+                </div>
+                <p class="text-[11px] text-gray-600 text-center mt-4">Полная база пользователей появится после подключения серверного хранилища.</p>`;
+        }
+
         function renderAdminPanel() {
+            renderAdminStats();
+            document.querySelectorAll('.admin-tab').forEach(button => {
+                button.classList.toggle('active', button.dataset.adminTab === currentAdminTab);
+            });
+            if (currentAdminTab === 'orders') renderAdminOrders();
+            if (currentAdminTab === 'stats') renderAdminAnalytics();
+            if (currentAdminTab === 'products') renderAdminProductsEditor();
+            if (currentAdminTab === 'users') renderAdminUsers();
+        }
+
+        function renderAdminProductsEditor() {
             const content = document.getElementById('admin-content');
             if (!content) return;
 
@@ -808,8 +1269,20 @@
         function bindAdminEvents() {
             document.getElementById('btn-admin')?.addEventListener('click', openAdminPanel);
             document.getElementById('btn-admin-close')?.addEventListener('click', closeAdminPanel);
+            document.getElementById('admin-tabs')?.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-admin-tab]');
+                if (!button) return;
+                currentAdminTab = button.dataset.adminTab;
+                renderAdminPanel();
+            });
 
             document.getElementById('admin-content')?.addEventListener('click', (e) => {
+                const filter = e.target.closest('[data-order-filter]');
+                if (filter) {
+                    currentAdminOrderFilter = filter.dataset.orderFilter;
+                    renderAdminOrders();
+                    return;
+                }
                 const btn = e.target.closest('[data-action]');
                 if (!btn) return;
                 const action = btn.dataset.action;
@@ -836,6 +1309,25 @@
                 if (action === 'product-status') updateProductStatus(pIndex, el.value);
                 if (action === 'flavor-name') updateFlavorName(pIndex, fIndex, el.value);
                 if (action === 'flavor-stock') updateFlavorStock(pIndex, fIndex, el.value);
+                if (action === 'order-status') {
+                    const orders = getStoredOrders();
+                    const order = orders.find(item => item.code === el.dataset.orderCode);
+                    if (order) {
+                        order.status = el.value;
+                        saveStoredOrders(orders);
+                        renderAdminPanel();
+                    }
+                }
+            });
+
+            document.getElementById('admin-content')?.addEventListener('input', (e) => {
+                if (e.target.id !== 'admin-order-search') return;
+                adminOrderSearch = e.target.value;
+                const cursorPosition = e.target.selectionStart;
+                renderAdminOrders();
+                const input = document.getElementById('admin-order-search');
+                input?.focus();
+                input?.setSelectionRange(cursorPosition, cursorPosition);
             });
         }
 
@@ -942,6 +1434,7 @@
             const itemsText = cart.map(i => `${i.name} x${i.qty} (${i.flavor})`).join(', ');
 
             const bonusUsed = parseInt(document.getElementById('summary-discount')?.innerText || '0', 10) || 0;
+            const localOrder = createLocalOrder(total, phone, address);
             globalOrderData = {
                 action: 'order',
                 phone,
@@ -949,7 +1442,8 @@
                 items: itemsText || 'Пусто',
                 total,
                 bonus_used: bonusUsed,
-                new_bonuses: getUnsyncedBonusesPayload()
+                new_bonuses: getUnsyncedBonusesPayload(),
+                client_order_code: localOrder.code
             };
 
             const successModal = document.getElementById('success-modal');
@@ -1011,11 +1505,22 @@
             }
             grid.innerHTML = '';
 
-            const count = products.length;
+            const visibleProducts = currentCatalogFilter === 'all'
+                ? products
+                : products.filter(product => normalizeProductStatus(product) === currentCatalogFilter);
+            const count = visibleProducts.length;
             const word = count === 1 ? 'товар' : (count >= 2 && count <= 4 ? 'товара' : 'товаров');
             document.getElementById('product-count').innerText = `${count} ${word}`;
+            document.querySelectorAll('[data-catalog-filter]').forEach(button => {
+                button.classList.toggle('active', button.dataset.catalogFilter === currentCatalogFilter);
+            });
 
-            products.forEach(p => {
+            if (!visibleProducts.length) {
+                grid.innerHTML = '<div class="empty-state col-span-2"><i class="fa-solid fa-box-open text-2xl mb-3"></i><p class="font-bold text-sm text-gray-400">В этой категории пока пусто</p></div>';
+                return;
+            }
+
+            visibleProducts.forEach(p => {
                 const totalStock = getTotalStock(p);
                 const statusInfo = getProductStatus(p);
                 const status = statusInfo.value;
@@ -1367,12 +1872,12 @@
             }, 5000);
         }
 
-        function initApp() {
+        async function initApp() {
             if (localStorage.getItem('terms-accepted') === 'true') {
                 document.getElementById('terms-modal').style.display = 'none';
             }
 
-            products = loadProductsFromBot();
+            products = await loadProductsFromBot();
             if (!Array.isArray(products) || products.length === 0) {
                 products = getDefaultProducts();
             }
@@ -1383,10 +1888,15 @@
             if (tg.initDataUnsafe?.user) {
                 const user = tg.initDataUnsafe.user;
                 document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-                document.getElementById('user-id').innerText = 'ID: ' + user.id;
+                document.getElementById('user-id').innerText = 'Telegram ID: ' + user.id;
+                document.getElementById('user-username').innerText = user.username ? '@' + user.username : 'Telegram пользователь';
+                if (user.photo_url) {
+                    document.getElementById('user-avatar').innerHTML = `<img src="${escapeHtml(user.photo_url)}" alt="Аватар" class="w-full h-full object-cover">`;
+                }
             }
 
             initBonusSystem();
+            updateProfileStats();
 
             updateAdminUI();
             drawWheel();
@@ -1399,11 +1909,21 @@
         window.closeAdminPanel = closeAdminPanel;
 
         bindAdminEvents();
+        document.getElementById('catalog-filters')?.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-catalog-filter]');
+            if (!button) return;
+            currentCatalogFilter = button.dataset.catalogFilter;
+            renderProducts();
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        });
 
         products = getDefaultProducts();
+        let appBooted = false;
 
-        function bootApp() {
-            initApp();
+        async function bootApp() {
+            if (appBooted) return;
+            appBooted = true;
+            await initApp();
             updateAdminUI();
             setTimeout(updateAdminUI, 200);
             setTimeout(updateAdminUI, 800);
@@ -1423,9 +1943,12 @@
             showCatalogFallback();
         }
 
-        if (typeof tg.ready === 'function') tg.ready(bootApp);
-        else bootApp();
-        window.addEventListener('load', bootApp);
+        if (typeof tg.ready === 'function') tg.ready();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootApp, { once: true });
+        } else {
+            bootApp();
+        }
     </script>
 </body>
 </html>

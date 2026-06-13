@@ -593,6 +593,7 @@
         const tg = window.Telegram?.WebApp || {};
         if (typeof tg.expand === 'function') tg.expand();
 
+        const API_BASE = 'https://104-207-76-133.nip.io/api';
         const ADMIN_IDS = new Set(['6466044615', '8729059527']);
 
         const DEFAULT_PRODUCTS = [
@@ -632,6 +633,23 @@
         let currentAdminTab = 'orders';
         let currentAdminOrderFilter = 'all';
         let adminOrderSearch = '';
+        let adminOrders = [];
+        let adminUsers = [];
+        let adminStatsData = {};
+
+        async function apiRequest(path, options = {}) {
+            const headers = new Headers(options.headers || {});
+            headers.set('X-Telegram-Init-Data', tg.initData || '');
+            if (options.body && !(options.body instanceof FormData)) {
+                headers.set('Content-Type', 'application/json');
+            }
+            const response = await fetch(API_BASE + path, { ...options, headers });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.detail || 'Ошибка соединения с сервером');
+            }
+            return data;
+        }
 
         function getDefaultProducts() {
             return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
@@ -797,6 +815,16 @@
         }
 
         async function loadProductsFromBot() {
+            try {
+                const apiData = await apiRequest('/catalog');
+                if (Array.isArray(apiData.products) && apiData.products.length) {
+                    cacheCatalog(apiData.products);
+                    return apiData.products;
+                }
+            } catch (e) {
+                console.warn('API каталога временно недоступен:', e.message);
+            }
+
             const b64 = new URLSearchParams(window.location.search).get('catalog');
             if (b64 && String(b64).trim()) {
                 try {
@@ -928,8 +956,8 @@
             };
         }
 
-        function renderCurrentUserProfile() {
-            const user = getCurrentProfileUser();
+        function renderCurrentUserProfile(serverUser = null) {
+            const user = serverUser || getCurrentProfileUser();
             const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
             const nameEl = document.getElementById('user-name');
             const idEl = document.getElementById('user-id');
@@ -1018,10 +1046,17 @@
             });
         }
 
-        function renderOrdersHistory() {
+        async function renderOrdersHistory() {
             const container = document.getElementById('orders-history-list');
             if (!container) return;
-            const orders = getStoredOrders();
+            container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin text-xl"></i><p class="text-xs mt-3">Загружаем заказы...</p></div>';
+            let orders = [];
+            try {
+                const data = await apiRequest('/profile/orders');
+                orders = Array.isArray(data.orders) ? data.orders : [];
+            } catch (e) {
+                orders = getStoredOrders();
+            }
             document.getElementById('profile-orders-count').innerText = orders.length;
             if (!orders.length) {
                 container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-receipt text-2xl mb-3"></i><p class="font-bold text-sm text-gray-400">Заказов пока нет</p><p class="text-xs mt-1">После оформления они появятся здесь.</p></div>';
@@ -1043,9 +1078,18 @@
             }).join('');
         }
 
-        function updateProfileStats() {
+        async function updateProfileStats() {
             const count = document.getElementById('profile-orders-count');
-            if (count) count.innerText = getStoredOrders().length;
+            if (!count) return;
+            try {
+                const data = await apiRequest('/profile');
+                count.innerText = data.ordersCount || 0;
+                if (data.user) {
+                    renderCurrentUserProfile(data.user);
+                }
+            } catch (e) {
+                count.innerText = getStoredOrders().length;
+            }
         }
 
         function openAppPage(pageId) {
@@ -1129,27 +1173,37 @@
             btn.classList.toggle('admin-visible', admin);
         }
 
-        function openAdminPanel() {
+        async function openAdminPanel() {
             if (!isAdminUser()) return;
             const panel = document.getElementById('admin-panel');
             if (!panel) return;
             panel.classList.add('admin-open');
             document.body.style.overflow = 'hidden';
+            document.getElementById('admin-content').innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin text-xl"></i><p class="text-xs mt-3">Загружаем данные...</p></div>';
+            try {
+                const data = await apiRequest('/admin/dashboard');
+                adminOrders = data.orders || [];
+                adminUsers = data.users || [];
+                adminStatsData = data.stats || {};
+            } catch (e) {
+                alert('Не удалось загрузить админку: ' + e.message);
+            }
             renderAdminPanel();
         }
 
-        function saveAdminChanges() {
+        async function saveAdminChanges() {
             if (!isAdminUser()) {
                 alert('Нет доступа.');
                 return;
             }
-            if (!confirm('Сохранить изменения в боте? Приложение закроется — это нормально.')) return;
-            if (tg.initDataUnsafe?.query_id) {
-                alert('Откройте магазин через кнопку «Открыть магазин» внизу чата.');
-                return;
-            }
+            if (!confirm('Сохранить изменения каталога?')) return;
             try {
-                tg.sendData(JSON.stringify({ action: 'save_catalog', products: products }));
+                await apiRequest('/admin/catalog', {
+                    method: 'PUT',
+                    body: JSON.stringify({ products })
+                });
+                cacheCatalog(products);
+                alert('Каталог сохранён. Изменения уже доступны всем пользователям.');
             } catch (e) {
                 alert('Ошибка отправки: ' + e.message);
             }
@@ -1163,23 +1217,11 @@
         function renderAdminStats() {
             const stats = document.getElementById('admin-stats');
             if (!stats) return;
-            const orders = getStoredOrders();
-            const now = new Date();
-            const todayRevenue = orders
-                .filter(order => new Date(order.createdAt).toDateString() === now.toDateString())
-                .reduce((sum, order) => sum + (Number(order.total) || 0), 0);
-            const monthRevenue = orders
-                .filter(order => {
-                    const date = new Date(order.createdAt);
-                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-                })
-                .reduce((sum, order) => sum + (Number(order.total) || 0), 0);
-            const clients = new Set(orders.map(order => order.userId || 'guest')).size || (getTelegramUserId() ? 1 : 0);
             stats.innerHTML = `
-                <div class="admin-stat-card"><div class="flex justify-between text-purple-400"><i class="fa-solid fa-receipt"></i><span class="text-[10px] text-gray-600">ВСЕГО</span></div><p class="text-3xl font-black mt-4">${orders.length}</p><p class="text-xs text-gray-500 mt-1">Заказы</p></div>
-                <div class="admin-stat-card"><div class="flex justify-between text-emerald-400"><i class="fa-solid fa-arrow-trend-up"></i><span class="text-[10px] text-gray-600">СЕГОДНЯ</span></div><p class="text-2xl font-black mt-4">${Math.round(todayRevenue * 0.3)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>
-                <div class="admin-stat-card"><div class="flex justify-between text-blue-400"><i class="fa-solid fa-users"></i><span class="text-[10px] text-gray-600">БАЗА</span></div><p class="text-3xl font-black mt-4">${clients}</p><p class="text-xs text-gray-500 mt-1">Клиенты</p></div>
-                <div class="admin-stat-card"><div class="flex justify-between text-pink-400"><i class="fa-solid fa-chart-column"></i><span class="text-[10px] text-gray-600">МЕСЯЦ</span></div><p class="text-2xl font-black mt-4">${Math.round(monthRevenue * 0.3)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>`;
+                <div class="admin-stat-card"><div class="flex justify-between text-purple-400"><i class="fa-solid fa-receipt"></i><span class="text-[10px] text-gray-600">ВСЕГО</span></div><p class="text-3xl font-black mt-4">${adminStatsData.orders || 0}</p><p class="text-xs text-gray-500 mt-1">Заказы</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-emerald-400"><i class="fa-solid fa-arrow-trend-up"></i><span class="text-[10px] text-gray-600">СЕГОДНЯ</span></div><p class="text-2xl font-black mt-4">${adminStatsData.todayProfit || 0} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-blue-400"><i class="fa-solid fa-users"></i><span class="text-[10px] text-gray-600">БАЗА</span></div><p class="text-3xl font-black mt-4">${adminStatsData.clients || 0}</p><p class="text-xs text-gray-500 mt-1">Клиенты</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-pink-400"><i class="fa-solid fa-chart-column"></i><span class="text-[10px] text-gray-600">МЕСЯЦ</span></div><p class="text-2xl font-black mt-4">${adminStatsData.monthProfit || 0} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>`;
         }
 
         function renderAdminOrders() {
@@ -1190,7 +1232,7 @@
                 ['confirmed', 'Подтвержден'],
                 ['delivery', 'Доставляется']
             ];
-            let orders = getStoredOrders();
+            let orders = [...adminOrders];
             if (currentAdminOrderFilter !== 'all') {
                 orders = orders.filter(order => order.status === currentAdminOrderFilter);
             }
@@ -1229,8 +1271,8 @@
 
         function renderAdminAnalytics() {
             const content = document.getElementById('admin-content');
-            const orders = getStoredOrders();
-            const revenue = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+            const orders = adminOrders;
+            const revenue = adminStatsData.revenue || 0;
             const average = orders.length ? Math.round(revenue / orders.length) : 0;
             content.innerHTML = `
                 <div class="space-y-3">
@@ -1242,16 +1284,12 @@
 
         function renderAdminUsers() {
             const content = document.getElementById('admin-content');
-            const orders = getStoredOrders();
-            const user = tg?.initDataUnsafe?.user || {};
-            const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Пользователь';
-            content.innerHTML = `
-                <div class="order-card flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center"><i class="fa-solid fa-user"></i></div>
-                    <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml(name)}</p><p class="text-[11px] text-gray-500">ID: ${escapeHtml(getTelegramUserId() || 'не определён')}</p></div>
-                    <div class="text-right"><p class="font-black">${orders.length}</p><p class="text-[10px] text-gray-600">заказов</p></div>
-                </div>
-                <p class="text-[11px] text-gray-600 text-center mt-4">Полная база пользователей появится после подключения серверного хранилища.</p>`;
+            content.innerHTML = adminUsers.length ? adminUsers.map(user => `
+                <div class="order-card flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center overflow-hidden">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user"></i>'}</div>
+                    <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml([user.first_name, user.last_name].filter(Boolean).join(' '))}</p><p class="text-[11px] text-gray-500">ID: ${user.telegram_id}${user.username ? ` · @${escapeHtml(user.username)}` : ''}</p><p class="text-[10px] text-gray-600 mt-1">${user.spent || 0} сом покупок</p></div>
+                    <div class="text-right"><p class="font-black">${user.orders_count || 0}</p><p class="text-[10px] text-gray-600">заказов</p></div>
+                </div>`).join('') : '<div class="empty-state">Клиентов пока нет</div>';
         }
 
         function renderAdminPanel() {
@@ -1298,9 +1336,16 @@
                                        placeholder="%">
                                 <span class="text-xs text-gray-400">Скидка (%)</span>
                             </div>
-                            <input type="text" value="${escapeHtml(product.img || '')}" placeholder="Ссылка на картинку"
-                                   data-action="product-image" data-pindex="${pIndex}"
-                                   class="w-full bg-zinc-800 text-xs px-3 py-2 rounded-xl outline-none text-gray-300">
+                            <div class="flex gap-3 items-center bg-zinc-950 rounded-xl p-3">
+                                <div class="w-16 h-16 rounded-xl bg-zinc-800 overflow-hidden shrink-0">
+                                    ${product.img ? `<img src="${escapeHtml(product.img)}" class="w-full h-full object-cover">` : '<div class="w-full h-full flex items-center justify-center text-zinc-600"><i class="fa-solid fa-image"></i></div>'}
+                                </div>
+                                <label class="flex-1 bg-purple-600 text-center py-3 rounded-xl text-xs font-bold cursor-pointer">
+                                    <i class="fa-solid fa-upload mr-1"></i> Загрузить фото
+                                    <input type="file" accept="image/jpeg,image/png,image/webp"
+                                           data-action="product-upload" data-pindex="${pIndex}" class="hidden">
+                                </label>
+                            </div>
                             <div>
                                 <span class="text-xs text-gray-400 block mb-1">Статус наличия</span>
                                 <select data-action="product-status" data-pindex="${pIndex}"
@@ -1367,7 +1412,7 @@
                 if (action === 'save-changes') saveAdminChanges();
             });
 
-            document.getElementById('admin-content')?.addEventListener('change', (e) => {
+            document.getElementById('admin-content')?.addEventListener('change', async (e) => {
                 const el = e.target.closest('[data-action]');
                 if (!el) return;
                 const action = el.dataset.action;
@@ -1378,16 +1423,21 @@
                 if (action === 'product-price') updateProductPrice(pIndex, el.value);
                 if (action === 'product-discount') updateProductDiscount(pIndex, el.value);
                 if (action === 'product-image') updateProductImage(pIndex, el.value);
+                if (action === 'product-upload' && el.files?.[0]) uploadProductImage(pIndex, el.files[0]);
                 if (action === 'product-status') updateProductStatus(pIndex, el.value);
                 if (action === 'flavor-name') updateFlavorName(pIndex, fIndex, el.value);
                 if (action === 'flavor-stock') updateFlavorStock(pIndex, fIndex, el.value);
                 if (action === 'order-status') {
-                    const orders = getStoredOrders();
-                    const order = orders.find(item => item.code === el.dataset.orderCode);
-                    if (order) {
-                        order.status = el.value;
-                        saveStoredOrders(orders);
+                    const order = adminOrders.find(item => item.code === el.dataset.orderCode);
+                    try {
+                        await apiRequest('/admin/orders/' + encodeURIComponent(el.dataset.orderCode), {
+                            method: 'PATCH',
+                            body: JSON.stringify({ status: el.value })
+                        });
+                        if (order) order.status = el.value;
                         renderAdminPanel();
+                    } catch (error) {
+                        alert('Не удалось изменить статус: ' + error.message);
                     }
                 }
             });
@@ -1439,6 +1489,20 @@
         function updateProductImage(pIndex, newImg) {
             products[pIndex].img = newImg.trim();
             syncAfterProductChange();
+        }
+
+        async function uploadProductImage(pIndex, file) {
+            const form = new FormData();
+            form.append('file', file);
+            form.append('init_data', tg.initData || '');
+            try {
+                const data = await apiRequest('/admin/upload', { method: 'POST', body: form });
+                products[pIndex].img = data.url;
+                syncAfterProductChange();
+                alert('Фото загружено. Нажмите «Сохранить изменения», чтобы обновить каталог.');
+            } catch (error) {
+                alert('Не удалось загрузить фото: ' + error.message);
+            }
         }
 
         function updateProductStatus(pIndex, newStatus) {
@@ -1499,55 +1563,51 @@
             modal.style.display = 'none';
         }
 
-        function submitOrderFinal() {
+        async function submitOrderFinal() {
             const phone = document.getElementById('checkout-phone')?.value || 'Не указан';
             const address = document.getElementById('checkout-address')?.value || 'Не указан';
-            const total = document.getElementById('summary-total')?.innerText || '0';
-            const itemsText = cart.map(i => `${i.name} x${i.qty} (${i.flavor})`).join(', ');
-
+            const subtotal = parseInt(document.getElementById('summary-subtotal')?.innerText || '0', 10) || 0;
+            const total = parseInt(document.getElementById('summary-total')?.innerText || '0', 10) || 0;
             const bonusUsed = parseInt(document.getElementById('summary-discount')?.innerText || '0', 10) || 0;
-            const localOrder = createLocalOrder(total, phone, address);
-            globalOrderData = {
-                action: 'order',
-                phone,
-                address,
-                items: itemsText || 'Пусто',
-                total,
-                bonus_used: bonusUsed,
-                new_bonuses: getUnsyncedBonusesPayload(),
-                client_order_code: localOrder.code
-            };
+            const submitButton = document.querySelector('[onclick="submitOrderFinal()"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Отправляем заказ...';
+            }
 
-            const successModal = document.getElementById('success-modal');
-            if (successModal) {
-                successModal.style.display = 'flex';
-            } else {
-                triggerTelegramSend();
+            try {
+                const result = await apiRequest('/orders', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        phone,
+                        address,
+                        items: cart,
+                        subtotal,
+                        bonus_used: bonusUsed,
+                        total
+                    })
+                });
+                globalOrderData = { code: result.code };
+                clearPendingBonusesAfterSync();
+                cart = [];
+                localStorage.setItem('waka_cart', JSON.stringify(cart));
+                updateCartCount();
+                closeCheckoutForce();
+                document.getElementById('success-modal').style.display = 'flex';
+                updateProfileStats();
+            } catch (error) {
+                alert('Не удалось оформить заказ: ' + error.message);
+            } finally {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="fa-solid fa-check"></i> Подтвердить заказ';
+                }
             }
         }
 
         function triggerTelegramSend() {
-            if (!globalOrderData) {
-                alert('Ошибка: Данные заказа не найдены в памяти!');
-                return;
-            }
-            if (window.Telegram && window.Telegram.WebApp) {
-                const webApp = window.Telegram.WebApp;
-                if (webApp.initDataUnsafe && webApp.initDataUnsafe.query_id) {
-                    alert("⚠️ Ограничение Telegram на ПК:\n\nВы открыли магазин через кнопку 'Menu' или старое сообщение. В таком режиме Telegram блокирует отправку данных.\n\nПожалуйста, закройте магазин, отправьте боту команду /start и зайдите через БОЛЬШУЮ КНОПКУ в самом внизу чата!");
-                    return;
-                }
-                try {
-                    webApp.sendData(JSON.stringify(globalOrderData));
-                    clearPendingBonusesAfterSync();
-                } catch (error) {
-                    alert('Ошибка Telegram API: ' + error.message);
-                }
-            } else {
-                alert('Браузерный тест! Данные заказа:\n' + JSON.stringify(globalOrderData));
-                const modal = document.getElementById('success-modal');
-                if (modal) modal.style.display = 'none';
-            }
+            if (typeof tg.close === 'function') tg.close();
+            else document.getElementById('success-modal').style.display = 'none';
         }
 
         function switchTab(tabName) {

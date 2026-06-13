@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WAKA ZYNK</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://104-207-76-133.nip.io" crossorigin>
+    <link rel="preconnect" href="https://telegram.org" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="./waka-tailwind.css?v=9">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -316,7 +319,7 @@
             <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center font-bold text-sm tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.4)]">WZ</div>
             <div>
                 <h1 class="font-bold text-base tracking-wide">WAKA ZYNK</h1>
-                <p class="text-xs text-gray-400">мини-приложение</p>
+                <p class="text-xs text-gray-400">мини-приложение · v9</p>
             </div>
         </div>
         <button onclick="toggleCart()" class="relative w-10 h-10 rounded-xl bg-[#171e2c] flex items-center justify-center text-gray-300 active:scale-95 transition-transform cursor-pointer">
@@ -636,19 +639,36 @@
         let adminOrders = [];
         let adminUsers = [];
         let adminStatsData = {};
+        let catalogLoading = true;
 
         async function apiRequest(path, options = {}) {
-            const headers = new Headers(options.headers || {});
+            const { timeoutMs = 12000, ...fetchOptions } = options;
+            const headers = new Headers(fetchOptions.headers || {});
             headers.set('X-Telegram-Init-Data', tg.initData || '');
-            if (options.body && !(options.body instanceof FormData)) {
+            if (fetchOptions.body && !(fetchOptions.body instanceof FormData)) {
                 headers.set('Content-Type', 'application/json');
             }
-            const response = await fetch(API_BASE + path, { ...options, headers });
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok) {
-                throw new Error(data.detail || 'Ошибка соединения с сервером');
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const response = await fetch(API_BASE + path, {
+                    ...fetchOptions,
+                    headers,
+                    signal: fetchOptions.signal || controller.signal
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Ошибка соединения с сервером');
+                }
+                return data;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Сервер отвечает слишком долго');
+                }
+                throw error;
+            } finally {
+                clearTimeout(timer);
             }
-            return data;
         }
 
         function getDefaultProducts() {
@@ -814,17 +834,7 @@
             }
         }
 
-        async function loadProductsFromBot() {
-            try {
-                const apiData = await apiRequest('/catalog');
-                if (Array.isArray(apiData.products) && apiData.products.length) {
-                    cacheCatalog(apiData.products);
-                    return apiData.products;
-                }
-            } catch (e) {
-                console.warn('API каталога временно недоступен:', e.message);
-            }
-
+        function loadCatalogFromUrl() {
             const b64 = new URLSearchParams(window.location.search).get('catalog');
             if (b64 && String(b64).trim()) {
                 try {
@@ -840,24 +850,53 @@
                     console.error('Ошибка чтения каталога от бота:', e);
                 }
             }
+            return null;
+        }
 
+        function loadProductsImmediately() {
+            const initialProducts = loadCatalogFromUrl() || loadCachedCatalog();
+            catalogLoading = !initialProducts;
+            return initialProducts || [];
+        }
+
+        async function refreshProductsFromApi() {
             try {
-                const response = await fetch(`./catalog.json?v=${Date.now()}`, {
-                    cache: 'no-store',
-                    headers: { 'Cache-Control': 'no-cache' }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        cacheCatalog(data);
-                        return data;
-                    }
+                const apiData = await apiRequest('/catalog', { timeoutMs: 4000 });
+                const freshProducts = apiData.products;
+                catalogLoading = false;
+                if (!Array.isArray(freshProducts) || !freshProducts.length) {
+                    if (!products.length) renderProducts();
+                    return;
                 }
+                cacheCatalog(freshProducts);
+                if (JSON.stringify(freshProducts) === JSON.stringify(products)) {
+                    renderProducts();
+                    return;
+                }
+                products = freshProducts;
+                products.forEach(product => {
+                    normalizeProductPrices(product);
+                    product.status = normalizeProductStatus(product);
+                });
+                renderProducts();
+                refreshOpenDetails();
+                if (isAdminPanelOpen()) renderAdminPanel();
             } catch (e) {
-                console.warn('Свежий catalog.json недоступен, используется локальная копия.');
+                catalogLoading = false;
+                if (!products.length) renderProducts();
+                console.warn('Фоновое обновление каталога пропущено:', e.message);
             }
+        }
 
-            return loadCachedCatalog() || getDefaultProducts();
+        async function refreshProductsFromStaticFile() {
+            try {
+                const response = await fetch('./catalog.json', { cache: 'force-cache' });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (Array.isArray(data) && data.length > 0 && !loadCachedCatalog()) {
+                    cacheCatalog(data);
+                }
+            } catch (e) {}
         }
 
         function getBasePrice(product) {
@@ -1217,11 +1256,22 @@
         function renderAdminStats() {
             const stats = document.getElementById('admin-stats');
             if (!stats) return;
+            const now = new Date();
+            const todayProfit = adminOrders
+                .filter(order => new Date(order.createdAt).toDateString() === now.toDateString())
+                .reduce((sum, order) => sum + (Number(order.profit) || Math.round((Number(order.total) || 0) * 0.3)), 0);
+            const monthProfit = adminOrders
+                .filter(order => {
+                    const date = new Date(order.createdAt);
+                    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+                })
+                .reduce((sum, order) => sum + (Number(order.profit) || Math.round((Number(order.total) || 0) * 0.3)), 0);
+            const clientCount = adminUsers.length || new Set(adminOrders.map(order => String(order.userId))).size;
             stats.innerHTML = `
-                <div class="admin-stat-card"><div class="flex justify-between text-purple-400"><i class="fa-solid fa-receipt"></i><span class="text-[10px] text-gray-600">ВСЕГО</span></div><p class="text-3xl font-black mt-4">${adminStatsData.orders || 0}</p><p class="text-xs text-gray-500 mt-1">Заказы</p></div>
-                <div class="admin-stat-card"><div class="flex justify-between text-emerald-400"><i class="fa-solid fa-arrow-trend-up"></i><span class="text-[10px] text-gray-600">СЕГОДНЯ</span></div><p class="text-2xl font-black mt-4">${adminStatsData.todayProfit || 0} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>
-                <div class="admin-stat-card"><div class="flex justify-between text-blue-400"><i class="fa-solid fa-users"></i><span class="text-[10px] text-gray-600">БАЗА</span></div><p class="text-3xl font-black mt-4">${adminStatsData.clients || 0}</p><p class="text-xs text-gray-500 mt-1">Клиенты</p></div>
-                <div class="admin-stat-card"><div class="flex justify-between text-pink-400"><i class="fa-solid fa-chart-column"></i><span class="text-[10px] text-gray-600">МЕСЯЦ</span></div><p class="text-2xl font-black mt-4">${adminStatsData.monthProfit || 0} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>`;
+                <div class="admin-stat-card"><div class="flex justify-between text-purple-400"><i class="fa-solid fa-receipt"></i><span class="text-[10px] text-gray-600">ВСЕГО</span></div><p class="text-3xl font-black mt-4">${adminOrders.length}</p><p class="text-xs text-gray-500 mt-1">Заказы</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-emerald-400"><i class="fa-solid fa-arrow-trend-up"></i><span class="text-[10px] text-gray-600">СЕГОДНЯ</span></div><p class="text-2xl font-black mt-4">${Math.max(Number(adminStatsData.todayProfit) || 0, todayProfit)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-blue-400"><i class="fa-solid fa-users"></i><span class="text-[10px] text-gray-600">БАЗА</span></div><p class="text-3xl font-black mt-4">${clientCount}</p><p class="text-xs text-gray-500 mt-1">Клиенты</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-pink-400"><i class="fa-solid fa-chart-column"></i><span class="text-[10px] text-gray-600">МЕСЯЦ</span></div><p class="text-2xl font-black mt-4">${Math.max(Number(adminStatsData.monthProfit) || 0, monthProfit)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>`;
         }
 
         function renderAdminOrders() {
@@ -1230,7 +1280,8 @@
                 ['all', 'Все'],
                 ['processing', 'В обработке'],
                 ['confirmed', 'Подтвержден'],
-                ['delivery', 'Доставляется']
+                ['delivery', 'Доставляется'],
+                ['completed', 'Завершен']
             ];
             let orders = [...adminOrders];
             if (currentAdminOrderFilter !== 'all') {
@@ -1284,7 +1335,19 @@
 
         function renderAdminUsers() {
             const content = document.getElementById('admin-content');
-            content.innerHTML = adminUsers.length ? adminUsers.map(user => `
+            const users = adminUsers.length ? adminUsers : [...new Map(adminOrders.map(order => [
+                String(order.userId),
+                {
+                    telegram_id: order.userId,
+                    first_name: order.userName || 'Пользователь',
+                    last_name: '',
+                    username: order.username || '',
+                    photo_url: '',
+                    orders_count: adminOrders.filter(item => String(item.userId) === String(order.userId)).length,
+                    spent: adminOrders.filter(item => String(item.userId) === String(order.userId)).reduce((sum, item) => sum + (Number(item.total) || 0), 0)
+                }
+            ])).values()];
+            content.innerHTML = users.length ? users.map(user => `
                 <div class="order-card flex items-center gap-3 mb-3">
                     <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center overflow-hidden">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user"></i>'}</div>
                     <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml([user.first_name, user.last_name].filter(Boolean).join(' '))}</p><p class="text-[11px] text-gray-500">ID: ${user.telegram_id}${user.username ? ` · @${escapeHtml(user.username)}` : ''}</p><p class="text-[10px] text-gray-600 mt-1">${user.spent || 0} сом покупок</p></div>
@@ -1335,6 +1398,14 @@
                                        class="w-20 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none"
                                        placeholder="%">
                                 <span class="text-xs text-gray-400">Скидка (%)</span>
+                            </div>
+                            <div class="bg-zinc-950 rounded-xl p-3">
+                                <label class="text-xs text-gray-400 block mb-2">Себестоимость товара, сом</label>
+                                <input type="number" value="${Number(product.costPrice) || 0}" min="0"
+                                       data-action="product-cost" data-pindex="${pIndex}"
+                                       class="w-full bg-zinc-800 rounded-xl px-3 py-2 font-bold outline-none"
+                                       placeholder="Например: 1700">
+                                <p class="text-[10px] text-gray-600 mt-2">Используется только для расчёта чистой прибыли.</p>
                             </div>
                             <div class="flex gap-3 items-center bg-zinc-950 rounded-xl p-3">
                                 <div class="w-16 h-16 rounded-xl bg-zinc-800 overflow-hidden shrink-0">
@@ -1422,6 +1493,7 @@
                 if (action === 'product-name') updateProductName(pIndex, el.value);
                 if (action === 'product-price') updateProductPrice(pIndex, el.value);
                 if (action === 'product-discount') updateProductDiscount(pIndex, el.value);
+                if (action === 'product-cost') updateProductCost(pIndex, el.value);
                 if (action === 'product-image') updateProductImage(pIndex, el.value);
                 if (action === 'product-upload' && el.files?.[0]) uploadProductImage(pIndex, el.files[0]);
                 if (action === 'product-status') updateProductStatus(pIndex, el.value);
@@ -1483,6 +1555,11 @@
 
         function updateProductDiscount(pIndex, percent) {
             applyDiscount(products[pIndex], percent);
+            syncAfterProductChange();
+        }
+
+        function updateProductCost(pIndex, value) {
+            products[pIndex].costPrice = Math.max(0, parseInt(value, 10) || 0);
             syncAfterProductChange();
         }
 
@@ -1549,6 +1626,7 @@
                 oldPrice: price,
                 discount: '',
                 discountPercent: 0,
+                costPrice: 0,
                 status: 'instock',
                 img: 'https://picsum.photos/id/' + (Math.floor(Math.random() * 100) + 10) + '/300/300',
                 flavors: []
@@ -1632,10 +1710,15 @@
         function renderProducts() {
             const grid = document.getElementById('catalog-grid');
             if (!grid) return;
-            if (!Array.isArray(products) || products.length === 0) {
-                products = getDefaultProducts();
-            }
             grid.innerHTML = '';
+
+            if (!Array.isArray(products) || products.length === 0) {
+                document.getElementById('product-count').innerText = catalogLoading ? 'Загрузка...' : '0 товаров';
+                grid.innerHTML = catalogLoading
+                    ? '<div class="empty-state col-span-2"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3"></i><p class="font-bold text-sm text-gray-400">Загружаем актуальный каталог...</p></div>'
+                    : '<div class="empty-state col-span-2"><i class="fa-solid fa-cloud-arrow-down text-2xl mb-3"></i><p class="font-bold text-sm text-gray-400">Не удалось загрузить каталог. Откройте приложение ещё раз.</p></div>';
+                return;
+            }
 
             const visibleProducts = currentCatalogFilter === 'all'
                 ? products
@@ -1652,7 +1735,7 @@
                 return;
             }
 
-            visibleProducts.forEach(p => {
+            visibleProducts.forEach((p, productIndex) => {
                 const totalStock = getTotalStock(p);
                 const statusInfo = getProductStatus(p);
                 const status = statusInfo.value;
@@ -1670,7 +1753,10 @@
                     ${hasDiscount ? `<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg z-10">${p.discount}</span>` : ''}
                     <span class="absolute top-2 right-2 z-10">${renderStatusBadge(statusInfo)}</span>
                     <div class="w-full aspect-square bg-[#171e2c] flex items-center justify-center p-4">
-                        <img src="${p.img}" alt="${escapeHtml(p.name)}" class="rounded-xl object-cover max-h-full${status === 'outofstock' ? ' grayscale' : ''}">
+                        <img src="${p.img}" alt="${escapeHtml(p.name)}"
+                             loading="${productIndex < 2 ? 'eager' : 'lazy'}"
+                             decoding="async" fetchpriority="${productIndex === 0 ? 'high' : 'auto'}"
+                             class="rounded-xl object-cover max-h-full${status === 'outofstock' ? ' grayscale' : ''}">
                     </div>
                     <div class="p-3 flex-1 flex flex-col justify-between space-y-3">
                         <div>
@@ -1798,6 +1884,7 @@
                     id: currentProduct.id,
                     name: currentProduct.name,
                     price: currentProduct.price,
+                    costPrice: Number(currentProduct.costPrice) || 0,
                     flavor: selectedFlavor.name,
                     qty: currentDetailQty
                 });
@@ -1901,8 +1988,8 @@
         const prizes = [
             { text: '50 сом', value: 50, color: '#1d1b3a', weight: 65 },
             { text: '100 сом', value: 100, color: '#2d1f4d', weight: 20 },
-            { text: '300 сом', value: 300, color: '#422375', weight: 10 },
-            { text: '500 сом', value: 500, color: '#581c87', weight: 5 }
+            { text: '300 сом', value: 300, color: '#422375', weight: 0 },
+            { text: '500 сом', value: 500, color: '#581c87', weight: 0 }
         ];
         const numSectors = prizes.length;
         const arcSize = (2 * Math.PI) / numSectors;
@@ -2009,10 +2096,7 @@
                 document.getElementById('terms-modal').style.display = 'none';
             }
 
-            products = await loadProductsFromBot();
-            if (!Array.isArray(products) || products.length === 0) {
-                products = getDefaultProducts();
-            }
+            products = loadProductsImmediately();
             products.forEach(product => {
                 normalizeProductPrices(product);
                 product.status = normalizeProductStatus(product);
@@ -2027,6 +2111,7 @@
             renderProducts();
             updateCartCount();
             checkWheelTimer();
+            refreshProductsFromApi();
         }
 
         window.openAdminPanel = openAdminPanel;
@@ -2041,13 +2126,13 @@
             if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
         });
 
-        products = getDefaultProducts();
+        products = [];
         let appBooted = false;
 
-        async function bootApp() {
+        function bootApp() {
             if (appBooted) return;
             appBooted = true;
-            await initApp();
+            initApp();
             updateAdminUI();
             setTimeout(updateAdminUI, 200);
             setTimeout(updateAdminUI, 800);
@@ -2055,9 +2140,6 @@
         }
 
         function showCatalogFallback() {
-            if (!Array.isArray(products) || products.length === 0) {
-                products = getDefaultProducts();
-            }
             renderProducts();
         }
 

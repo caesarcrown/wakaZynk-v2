@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WAKA ZYNK</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .success-content {
+            background: #121520;
+            width: 85%;
+            max-width: 360px;
+            border-radius: 24px;
+            padding: 35px 24px;
+            text-align: center;
+            color: white;
+            font-family: sans-serif;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .success-icon-circle {
+            width: 90px;
+            height: 90px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        .checkmark { color: white; font-size: 45px; font-weight: bold; }
+        .success-content h2 { font-size: 24px; margin: 0 0 12px 0; font-weight: 700; }
+        .success-content p { font-size: 14px; color: #94a3b8; margin: 0 0 30px 0; line-height: 1.5; }
+        .success-buttons { display: flex; gap: 12px; }
+        .btn-secondary {
+            flex: 1; background: #1e293b; color: #94a3b8; border: none;
+            padding: 14px; border-radius: 16px; font-weight: bold; font-size: 15px; cursor: pointer;
+        }
+        .btn-primary {
+            flex: 1; background: #6366f1; color: white; border: none;
+            padding: 14px; border-radius: 16px; font-weight: bold; font-size: 15px; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .btn-secondary:active, .btn-primary:active { transform: scale(0.97); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0b0e14;
+            color: #ffffff;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .active-tab { color: #a855f7; }
+        .bottom-sheet { transition: transform 0.3s ease-out; transform: translateY(100%); }
+        .bottom-sheet.active { transform: translateY(0); }
+        .flavor-btn.selected { border-color: #a855f7; background-color: rgba(168, 85, 247, 0.15); }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10000;
+        }
+        .terms-content {
+            background: #121520; width: 90%; max-width: 400px;
+            border-radius: 24px; padding: 24px; color: white; font-family: sans-serif;
+        }
+        .terms-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .warning-icon { color: #facc15; font-size: 32px; }
+        .terms-header h3 { margin: 0; font-size: 18px; }
+        .terms-header p { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
+        .terms-list { display: flex; flex-direction: column; gap: 12px; }
+        .terms-item {
+            display: flex; gap: 15px; padding: 16px; border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .terms-item i { font-size: 20px; margin-top: 3px; }
+        .terms-item strong { display: block; font-size: 14px; margin-bottom: 4px; }
+        .terms-item p { margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.4; }
+        .item-red i { color: #ef4444; }
+        .item-blue i { color: #3b82f6; }
+        .item-gold i { color: #f59e0b; }
+        .terms-footer { margin-top: 25px; }
+        .toggle-container {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding: 0 5px;
+        }
+        .toggle-container span { font-size: 14px; color: white; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .btn-confirm {
+            width: 100%; border: none; padding: 16px; border-radius: 16px;
+            background: #ffffff; color: black; font-weight: bold; font-size: 16px; cursor: pointer;
+        }
+        .btn-confirm:active { transform: scale(0.98); }
+        #btn-admin { display: none; }
+        #btn-admin.admin-visible {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #admin-panel {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #09090b;
+            overflow-y: auto;
+        }
+        #admin-panel.admin-open { display: block; }
+        .status-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 8px;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+        .status-badge-instock {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+        .status-badge-soon {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+        .status-badge-outofstock {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+        .product-card-outofstock {
+            opacity: 0.55;
+        }
+        .product-card-outofstock .product-card-title {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .product-card-soon {
+            opacity: 0.9;
+        }
+        .catalog-filter {
+            flex: 1;
+            border: 1px solid #20283a;
+            background: #121824;
+            color: #8b95a7;
+            padding: 10px 8px;
+            border-radius: 13px;
+            font-size: 12px;
+            font-weight: 700;
+            transition: 0.2s ease;
+        }
+        .catalog-filter.active {
+            color: #fff;
+            border-color: rgba(168, 85, 247, 0.7);
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.9), rgba(79, 70, 229, 0.9));
+            box-shadow: 0 8px 24px rgba(126, 34, 206, 0.2);
+        }
+        .app-page {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            overflow-y: auto;
+            background:
+                radial-gradient(circle at 90% -10%, rgba(126, 34, 206, 0.2), transparent 35%),
+                #0b0e14;
+        }
+        .app-page.open { display: block; }
+        .page-shell { width: 100%; max-width: 520px; margin: 0 auto; padding: 18px 16px 36px; }
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 8px 0 18px;
+            background: linear-gradient(#0b0e14 75%, transparent);
+        }
+        .page-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 13px;
+            border: 1px solid #232b3d;
+            background: #151b27;
+            color: #fff;
+        }
+        .menu-card {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 15px;
+            border: 1px solid #20283a;
+            border-radius: 18px;
+            background: #121824;
+            text-align: left;
+        }
+        .menu-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #c084fc;
+            background: rgba(126, 34, 206, 0.18);
+        }
+        .admin-stat-card {
+            min-height: 116px;
+            border: 1px solid #20283a;
+            border-radius: 20px;
+            padding: 15px;
+            background: linear-gradient(145deg, #151b27, #10151f);
+        }
+        .admin-tab {
+            min-width: max-content;
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: #7f899c;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .admin-tab.active { color: #fff; background: #7c3aed; }
+        .admin-order-filter {
+            min-width: max-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid #283144;
+            color: #8b95a7;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .admin-order-filter.active {
+            color: #fff;
+            border-color: rgba(168, 85, 247, 0.6);
+            background: rgba(126, 34, 206, 0.28);
+        }
+        .order-card {
+            border: 1px solid #20283a;
+            border-radius: 18px;
+            padding: 15px;
+            background: #121824;
+        }
+        .empty-state {
+            padding: 42px 20px;
+            border: 1px dashed #283144;
+            border-radius: 20px;
+            color: #778196;
+            text-align: center;
+            background: rgba(18, 24, 36, 0.55);
+        }
+    </style>
+</head>
+<body class="select-none overflow-x-hidden pb-24">
+
+    <div id="terms-modal" class="modal-overlay">
+        <div class="terms-content">
+            <div class="terms-header">
+                <i class="fa-solid fa-triangle-exclamation warning-icon"></i>
+                <div>
+                    <h3>Важные условия покупки</h3>
+                    <p>Подтвердите перед входом в магазин</p>
+                </div>
+            </div>
+            <div class="terms-list">
+                <div class="terms-item item-red">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <div>
+                        <strong>Возврата денег нет</strong>
+                        <p>После покупки возврат денежных средств не производится.</p>
+                    </div>
+                </div>
+                <div class="terms-item item-blue">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div>
+                        <strong>Замена только при браке</strong>
+                        <p>Замена возможна только при подтвержденном браке товара.</p>
+                    </div>
+                </div>
+                <div class="terms-item item-gold">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <div>
+                        <strong>Покупка только от 18+</strong>
+                        <p>Нажимая "Хорошо", вы подтверждаете, что вам есть 18 лет.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="terms-footer">
+                <div class="toggle-container">
+                    <span>Не показывать снова</span>
+                    <label class="switch">
+                        <input type="checkbox" id="dont-show-again">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <button class="btn-confirm" onclick="closeTermsModal()">Хорошо</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="p-4 flex items-center justify-between border-b border-gray-900 bg-[#0f131c] sticky top-0 z-30">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center font-bold text-sm tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.4)]">WZ</div>
+            <div>
+                <h1 class="font-bold text-base tracking-wide">WAKA ZYNK</h1>
+                <p class="text-xs text-gray-400">мини-приложение · v8</p>
+            </div>
+        </div>
+        <button onclick="toggleCart()" class="relative w-10 h-10 rounded-xl bg-[#171e2c] flex items-center justify-center text-gray-300 active:scale-95 transition-transform cursor-pointer">
+            <i class="fa-solid fa-shopping-cart text-sm"></i>
+            <span id="cart-count" class="hidden absolute -top-1 -right-1 bg-purple-600 text-[10px] font-bold w-5 h-5 rounded-full border-2 border-[#0f131c] flex items-center justify-center">0</span>
+        </button>
+    </header>
+
+    <div id="cart-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 p-4 flex items-center justify-center">
+        <div class="bg-[#131924] w-full max-w-md rounded-3xl p-6 border border-gray-800 flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Ваш заказ</h2>
+                <button onclick="toggleCart()" class="text-gray-500 text-2xl hover:text-white">&times;</button>
+            </div>
+            <div id="cart-items" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+            <div class="border-t border-gray-800 mt-4 pt-4 space-y-4">
+                <div class="flex justify-between font-bold text-lg">
+                    <span>Итого по товарам:</span>
+                    <span><span id="cart-total">0</span> сом</span>
+                </div>
+                <button onclick="openOrderCheckout()" class="w-full bg-purple-600 font-bold py-4 rounded-2xl text-center cursor-pointer active:scale-98 transition-transform">Перейти к оформлению</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="details-back" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end justify-center" onclick="closeDetails(event)">
+        <div id="details-sheet" class="bottom-sheet bg-[#131924] w-full max-w-md rounded-t-3xl border-t border-gray-800 p-6 space-y-5 overflow-y-auto max-h-[90vh]" onclick="event.stopPropagation()">
+            <div class="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-2" onclick="closeDetailsForce()"></div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 id="detail-name" class="text-2xl font-black tracking-wide"></h2>
+                    <div class="flex items-center gap-3 mt-1">
+                        <span id="detail-price" class="text-2xl font-black text-white"></span>
+                        <span class="text-sm text-gray-400">сом</span>
+                        <span id="detail-old-price" class="text-sm line-through text-gray-500"></span>
+                    </div>
+                    <div id="detail-status" class="text-[11px] font-bold text-emerald-400 mt-1"></div>
+                </div>
+                <button onclick="closeDetailsForce()" class="w-8 h-8 rounded-full bg-[#1e2638] flex items-center justify-center text-gray-400">&times;</button>
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-sm font-bold text-gray-300">Выберите вкус</h3>
+                <div id="flavors-grid" class="grid grid-cols-2 gap-2"></div>
+            </div>
+            <div class="flex items-center justify-between bg-[#0b0e14] p-4 rounded-2xl border border-gray-900">
+                <span class="text-sm font-medium text-gray-400">Количество</span>
+                <div class="flex items-center space-x-4">
+                    <button onclick="changeDetailQty(-1)" class="w-8 h-8 rounded-lg bg-[#171e2c] flex items-center justify-center font-bold text-lg active:scale-90">-</button>
+                    <span id="detail-qty" class="text-base font-bold">1</span>
+                    <button onclick="changeDetailQty(1)" class="w-8 h-8 rounded-lg bg-[#171e2c] flex items-center justify-center font-bold text-lg active:scale-90">+</button>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button id="detail-buy-btn" onclick="addSelectedToCart()" class="w-full bg-purple-600 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold py-4 rounded-2xl cursor-pointer text-center transition-all">
+                    <i class="fa-solid fa-shopping-cart mr-2"></i>В корзину
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="checkout-back" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end justify-center" onclick="closeCheckout(event)">
+        <div id="checkout-sheet" class="bottom-sheet bg-[#131924] w-full max-w-md rounded-t-3xl border-t border-gray-800 p-6 space-y-5 overflow-y-auto max-h-[95vh]" onclick="event.stopPropagation()">
+            <div class="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-2" onclick="closeCheckoutForce()"></div>
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold tracking-wide">Оформление заказа</h2>
+                <button onclick="closeCheckoutForce()" class="w-8 h-8 rounded-full bg-[#1e2638] flex items-center justify-center text-gray-400">&times;</button>
+            </div>
+            <div class="space-y-1">
+                <input type="tel" id="checkout-phone" value="+996" class="w-full bg-[#121824] border border-pink-500/40 rounded-xl py-3.5 px-4 text-base font-medium text-white focus:outline-none focus:border-purple-500 transition-all">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-location-dot"></i> Адрес доставки</label>
+                <input type="text" id="checkout-address" placeholder="Введите адрес" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white focus:outline-none focus:border-purple-500">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-calendar-days"></i> Дата</label>
+                <div id="checkout-date-box" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white font-medium"></div>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-clock"></i> Время</label>
+                <div id="checkout-time-box" class="w-full bg-[#171e2c] border border-gray-800 rounded-xl py-3.5 px-4 text-sm text-white font-medium text-center"></div>
+            </div>
+            <div class="bg-[#0b0e14] p-4 rounded-2xl border border-gray-900 space-y-2.5">
+                <div class="flex justify-between text-sm text-gray-400">
+                    <span>Товары</span>
+                    <span class="text-white font-medium"><span id="summary-subtotal">0</span> сом</span>
+                </div>
+                <div class="flex justify-between text-sm text-gray-400">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-rotate-left text-xs"></i> Скидка колеса</span>
+                    <span class="text-emerald-400 font-medium">-<span id="summary-discount">0</span> сом</span>
+                </div>
+                <div class="border-t border-gray-900 my-1"></div>
+                <div class="flex justify-between items-baseline">
+                    <span class="font-bold text-base">Итого</span>
+                    <span class="text-xl font-black text-white"><span id="summary-total">0</span> сом</span>
+                </div>
+            </div>
+            <button onclick="submitOrderFinal()" class="w-full bg-[#273043] hover:bg-purple-600 text-gray-300 hover:text-white font-bold py-4 rounded-2xl cursor-pointer text-center transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i> Подтвердить заказ
+            </button>
+        </div>
+    </div>
+
+    <main id="tab-catalog" class="p-4 space-y-4">
+        <div class="flex items-baseline justify-between">
+            <h2 class="text-2xl font-bold">Каталог</h2>
+            <span id="product-count" class="text-xs text-gray-400">1 товар</span>
+        </div>
+        <div class="flex gap-2" id="catalog-filters">
+            <button class="catalog-filter active" data-catalog-filter="all">Все</button>
+            <button class="catalog-filter" data-catalog-filter="instock">В наличии</button>
+            <button class="catalog-filter" data-catalog-filter="soon">Скоро</button>
+        </div>
+        <div id="catalog-grid" class="grid grid-cols-2 gap-3"></div>
+    </main>
+
+    <main id="tab-bonuses" class="p-4 hidden space-y-6 text-center">
+        <div class="text-left">
+            <h2 class="text-2xl font-bold">Колесо Фортуны</h2>
+            <p class="text-xs text-gray-400 mt-1">Испытай удачу раз в сутки и выигрывай бонусы на баланс!</p>
+        </div>
+        <div class="bg-[#121824] p-4 rounded-2xl border border-emerald-500/20 text-left">
+            <p class="text-xs text-gray-400">Активные бонусы</p>
+            <p class="text-2xl font-black text-emerald-400 mt-1"><span id="wheel-active-bonuses">0</span> <span class="text-sm font-normal text-gray-400">сом</span></p>
+            <p id="wheel-bonus-expiry" class="text-[10px] text-gray-500 mt-1">Бонусы действуют 24 часа с момента выигрыша</p>
+        </div>
+        <div class="relative w-76 h-76 mx-auto my-4 flex items-center justify-center">
+            <div class="absolute top-0 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[25px] border-t-purple-500 z-30 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.5)]"></div>
+            <canvas id="wheelCanvas" width="290" height="290" class="rounded-full shadow-[0_0_30px_rgba(168,85,247,0.25)] border-4 border-[#171e2c] transition-transform duration-5000 ease-out"></canvas>
+            <div class="absolute w-14 h-14 bg-[#0b0e14] border-2 border-purple-500 rounded-full text-white font-black flex items-center justify-center text-[10px]">ZYNK</div>
+        </div>
+        <button onclick="spinWheel()" id="spin-btn" class="w-full max-w-sm bg-gradient-to-r from-purple-600 to-indigo-600 font-bold py-4 rounded-2xl shadow-[0_4px_15px_rgba(168,85,247,0.3)] disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all cursor-pointer">
+            ⚡ Крутить!
+        </button>
+        <div class="bg-[#121824] p-4 rounded-3xl border border-gray-900 text-left space-y-3">
+            <h3 class="text-sm font-bold text-gray-400 px-1">Возможные призы:</h3>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between bg-[#171e2c] p-2.5 rounded-xl">
+                    <div class="flex items-center space-x-3"><div class="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xs font-bold">50</div><span class="text-sm font-bold">50 сом</span></div>
+                    <div class="flex items-center space-x-2 flex-1 justify-end max-w-[60%]"><div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden"><div class="bg-purple-600 h-full rounded-full" style="width: 65%"></div></div><span class="text-xs text-gray-400 font-bold min-w-8 text-right">65%</span></div>
+                </div>
+                <div class="flex items-center justify-between bg-[#171e2c] p-2.5 rounded-xl">
+                    <div class="flex items-center space-x-3"><div class="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xs font-bold">100</div><span class="text-sm font-bold">100 сом</span></div>
+                    <div class="flex items-center space-x-2 flex-1 justify-end max-w-[60%]"><div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden"><div class="bg-purple-600 h-full rounded-full" style="width: 20%"></div></div><span class="text-xs text-gray-400 font-bold min-w-8 text-right">20%</span></div>
+                </div>
+                <div class="flex items-center justify-between bg-[#171e2c] p-2.5 rounded-xl">
+                    <div class="flex items-center space-x-3"><div class="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xs font-bold">300</div><span class="text-sm font-bold">300 сом</span></div>
+                    <div class="flex items-center space-x-2 flex-1 justify-end max-w-[60%]"><div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden"><div class="bg-purple-600 h-full rounded-full" style="width: 10%"></div></div><span class="text-xs text-gray-400 font-bold min-w-8 text-right">10%</span></div>
+                </div>
+                <div class="flex items-center justify-between bg-[#171e2c] p-2.5 rounded-xl">
+                    <div class="flex items-center space-x-3"><div class="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xs font-bold">500</div><span class="text-sm font-bold">500 сом</span></div>
+                    <div class="flex items-center space-x-2 flex-1 justify-end max-w-[60%]"><div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden"><div class="bg-amber-500 h-full rounded-full" style="width: 5%"></div></div><span class="text-xs text-gray-400 font-bold min-w-8 text-right">5%</span></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="tab-profile" class="p-4 hidden space-y-4">
+        <div class="flex items-center space-x-4 bg-gradient-to-br from-[#171e2c] to-[#10151f] p-4 rounded-3xl border border-purple-500/15">
+            <div id="user-avatar" class="w-16 h-16 rounded-2xl bg-purple-600 flex items-center justify-center text-xl font-bold overflow-hidden shrink-0"><i class="fa-solid fa-user"></i></div>
+            <div class="min-w-0">
+                <h3 id="user-name" class="font-bold text-base">Пользователь</h3>
+                <p id="user-username" class="text-xs text-purple-400 mt-0.5">@telegram</p>
+                <p id="user-id" class="text-[11px] text-gray-500 mt-1">Telegram ID: 000000000</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-[#121824] p-4 rounded-2xl border border-gray-900">
+                <div class="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center mb-4"><i class="fa-solid fa-box"></i></div>
+                <p class="text-[11px] text-gray-400">Всего заказов</p>
+                <p id="profile-orders-count" class="text-2xl font-black mt-1">0</p>
+            </div>
+            <div class="bg-[#121824] p-4 rounded-2xl border border-gray-900">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-4"><i class="fa-solid fa-wallet"></i></div>
+                <p class="text-[11px] text-gray-400">Активные бонусы</p>
+                <p class="text-2xl font-black mt-1"><span id="user-balance">0</span> <span class="text-xs font-normal text-gray-400">сом</span></p>
+            </div>
+        </div>
+        <div class="bg-[#121824] p-4 rounded-2xl border border-gray-900">
+            <div class="flex justify-between items-center">
+                <p class="text-xs text-gray-400">Срок действия бонусов</p>
+                <i class="fa-regular fa-clock text-purple-400"></i>
+            </div>
+            <p id="profile-bonus-expiry" class="text-[11px] text-gray-500 mt-2"></p>
+        </div>
+        <div class="space-y-3">
+            <button onclick="openAppPage('orders-page')" class="menu-card">
+                <span class="menu-card-icon"><i class="fa-solid fa-receipt"></i></span>
+                <span class="flex-1"><strong class="text-sm block">История заказов</strong><small class="text-gray-500">Все ваши покупки и статусы</small></span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-600"></i>
+            </button>
+            <button onclick="openReferralPage()" class="menu-card">
+                <span class="menu-card-icon"><i class="fa-solid fa-user-group"></i></span>
+                <span class="flex-1"><strong class="text-sm block">Реферальная программа</strong><small class="text-gray-500">Приглашайте друзей и получайте бонусы</small></span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-600"></i>
+            </button>
+        </div>
+    </main>
+
+    <section id="orders-page" class="app-page">
+        <div class="page-shell">
+            <div class="page-header">
+                <button class="page-back" onclick="closeAppPage('orders-page')"><i class="fa-solid fa-arrow-left"></i></button>
+                <div><h2 class="text-xl font-black">История заказов</h2><p class="text-xs text-gray-500">Ваши последние покупки</p></div>
+            </div>
+            <div id="orders-history-list" class="space-y-3"></div>
+        </div>
+    </section>
+
+    <section id="referral-page" class="app-page">
+        <div class="page-shell">
+            <div class="page-header">
+                <button class="page-back" onclick="closeAppPage('referral-page')"><i class="fa-solid fa-arrow-left"></i></button>
+                <div><h2 class="text-xl font-black">Реферальная программа</h2><p class="text-xs text-gray-500">Бонусы вместе с друзьями</p></div>
+            </div>
+            <div class="rounded-3xl p-6 border border-purple-500/20 bg-gradient-to-br from-purple-700/30 to-indigo-900/20 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-2xl mx-auto"><i class="fa-solid fa-gift"></i></div>
+                <h3 class="text-2xl font-black mt-5">Приглашай друзей</h3>
+                <p class="text-sm text-gray-400 mt-2">Делитесь своей ссылкой и получайте бонусы за активных друзей.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <div class="admin-stat-card"><p class="text-xs text-gray-500">Приглашено</p><p id="referral-invited" class="text-3xl font-black mt-3">0</p><p class="text-[10px] text-gray-600 mt-1">друзей</p></div>
+                <div class="admin-stat-card"><p class="text-xs text-gray-500">Заработано</p><p id="referral-earned" class="text-3xl font-black mt-3">0</p><p class="text-[10px] text-gray-600 mt-1">сом</p></div>
+            </div>
+            <div class="mt-4 bg-[#121824] border border-gray-800 rounded-2xl p-4">
+                <p class="text-xs text-gray-500 mb-2">Ваша реферальная ссылка</p>
+                <div class="flex gap-2">
+                    <input id="referral-link" readonly class="min-w-0 flex-1 bg-[#0b0e14] border border-gray-800 rounded-xl px-3 text-xs text-gray-300">
+                    <button onclick="copyReferralLink()" class="w-12 h-12 rounded-xl bg-purple-600"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <button onclick="shareReferralLink()" class="w-full mt-3 py-3.5 rounded-xl bg-white text-black font-bold text-sm"><i class="fa-solid fa-share-nodes mr-2"></i>Поделиться</button>
+            </div>
+        </div>
+    </section>
+
+    <nav class="fixed bottom-0 inset-x-0 bg-[#0f131c]/95 backdrop-blur-md border-t border-gray-900 flex justify-around py-3 text-gray-500 text-xs font-semibold z-40">
+        <button onclick="switchTab('bonuses')" id="btn-bonuses" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-gift text-lg"></i><span>Бонусы</span></button>
+        <button onclick="switchTab('catalog')" id="btn-catalog" class="flex flex-col items-center space-y-1 w-20 active-tab"><i class="fa-solid fa-cubes text-lg"></i><span>Каталог</span></button>
+        <button onclick="switchTab('profile')" id="btn-profile" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-user text-lg"></i><span>Профиль</span></button>
+        <button id="btn-admin" onclick="openAdminPanel()" class="flex flex-col items-center space-y-1 w-20"><i class="fa-solid fa-shield-halved text-lg"></i><span>Админ</span></button>
+    </nav>
+
+    <div id="success-modal" class="modal-overlay" style="display: none;">
+        <div class="success-content">
+            <div class="success-icon-circle"><span class="checkmark">✓</span></div>
+            <h2>Заказ оформлен!</h2>
+            <p>Детали и инструкция по оплате отправлены в чат с ботом</p>
+            <div class="success-buttons">
+                <button class="btn-secondary" onclick="location.reload()">В магазин</button>
+                <button class="btn-primary" onclick="triggerTelegramSend()">Открыть бота</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Админ-панель -->
+    <div id="admin-panel">
+        <div class="p-4 max-w-xl mx-auto pb-10">
+            <div class="flex items-center justify-between mb-5 pt-1">
+                <div><p class="text-xs text-purple-400 font-bold uppercase tracking-widest">WAKA ZYNK</p><h2 class="text-2xl font-black mt-1">Админ-панель</h2></div>
+                <button id="btn-admin-close" class="w-10 h-10 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white text-xl">&times;</button>
+            </div>
+            <div id="admin-stats" class="grid grid-cols-2 gap-3 mb-5"></div>
+            <div id="admin-tabs" class="flex gap-2 overflow-x-auto bg-[#10151f] border border-gray-900 rounded-2xl p-1.5 mb-5">
+                <button class="admin-tab active" data-admin-tab="orders">Заказы</button>
+                <button class="admin-tab" data-admin-tab="stats">Статистика</button>
+                <button class="admin-tab" data-admin-tab="products">Товары</button>
+                <button class="admin-tab" data-admin-tab="users">Юзеры</button>
+            </div>
+            <div id="admin-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp || {};
+        if (typeof tg.expand === 'function') tg.expand();
+
+        const API_BASE = 'https://104-207-76-133.nip.io/api';
+        const ADMIN_IDS = new Set(['6466044615', '8729059527']);
+
+        const DEFAULT_PRODUCTS = [
+            {
+                id: 1,
+                name: "ET 35000",
+                price: 2300,
+                oldPrice: 2500,
+                discount: "-8%",
+                status: "instock",
+                img: "https://picsum.photos/id/20/300/300",
+                flavors: [
+                    { name: "Мята", stock: 4 },
+                    { name: "Гавайский Лимонад", stock: 8 },
+                    { name: "Клубника Малина", stock: 9 },
+                    { name: "Черника Малина Ментол", stock: 8 },
+                    { name: "Кислое Яблоко Карамель", stock: 6 },
+                    { name: "Лимонная Ледяная Кола", stock: 5 },
+                    { name: "Сакура виноград", stock: 4 },
+                    { name: "Ледяной Мокко", stock: 5 }
+                ]
+            }
+        ];
+
+        const BONUS_TTL_MS = 24 * 60 * 60 * 1000;
+        let products = [];
+        let currentBalance = 0;
+        let serverBonusEntries = [];
+        let pendingBonusEntries = [];
+        let bonusExpiryTimer = null;
+        let cart = JSON.parse(localStorage.getItem('waka_cart')) || [];
+        let currentProduct = null;
+        let selectedFlavor = null;
+        let currentDetailQty = 1;
+        let globalOrderData = null;
+        let currentCatalogFilter = 'all';
+        let currentAdminTab = 'orders';
+        let currentAdminOrderFilter = 'all';
+        let adminOrderSearch = '';
+        let adminOrders = [];
+        let adminUsers = [];
+        let adminStatsData = {};
+
+        async function apiRequest(path, options = {}) {
+            const headers = new Headers(options.headers || {});
+            headers.set('X-Telegram-Init-Data', tg.initData || '');
+            if (options.body && !(options.body instanceof FormData)) {
+                headers.set('Content-Type', 'application/json');
+            }
+            const response = await fetch(API_BASE + path, { ...options, headers });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.detail || 'Ошибка соединения с сервером');
+            }
+            return data;
+        }
+
+        function getDefaultProducts() {
+            return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+        }
+
+        function decodeBase64Json(param) {
+            if (!param || !String(param).trim()) return null;
+            try {
+                const normalized = param.replace(/-/g, '+').replace(/_/g, '/');
+                const binary = atob(normalized);
+                const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+                const json = new TextDecoder().decode(bytes);
+                return JSON.parse(json);
+            } catch (e) {
+                console.error('Ошибка декодирования параметра:', e);
+                return null;
+            }
+        }
+
+        function loadBonusesFromBot() {
+            const data = decodeBase64Json(new URLSearchParams(window.location.search).get('bonuses'));
+            if (!data || !Array.isArray(data.entries)) return [];
+            return data.entries
+                .map(entry => ({
+                    amount: parseInt(entry.amount, 10) || 0,
+                    timestamp: parseInt(entry.timestamp, 10) || 0
+                }))
+                .filter(entry => entry.amount > 0 && entry.timestamp > 0);
+        }
+
+        function getPendingBonusesKey() {
+            const userId = getTelegramUserId() || getCurrentProfileUser().id;
+            return userId ? `waka_pending_bonuses_${userId}` : 'waka_pending_bonuses';
+        }
+
+        function loadPendingBonuses() {
+            try {
+                const raw = localStorage.getItem(getPendingBonusesKey());
+                const data = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(data)) return [];
+                return data
+                    .map(entry => ({
+                        amount: parseInt(entry.amount, 10) || 0,
+                        timestamp: parseInt(entry.timestamp, 10) || 0
+                    }))
+                    .filter(entry => entry.amount > 0 && entry.timestamp > 0);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function savePendingBonuses() {
+            localStorage.setItem(getPendingBonusesKey(), JSON.stringify(pendingBonusEntries));
+        }
+
+        function isBonusEntryActive(entry, nowMs = Date.now()) {
+            return entry.timestamp > 0 && nowMs - entry.timestamp < BONUS_TTL_MS;
+        }
+
+        function getActiveBonusEntries() {
+            const nowMs = Date.now();
+            const combined = [...serverBonusEntries, ...pendingBonusEntries];
+            const seen = new Set();
+            const active = [];
+            combined.forEach(entry => {
+                if (!isBonusEntryActive(entry, nowMs)) return;
+                const key = `${entry.timestamp}:${entry.amount}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                active.push(entry);
+            });
+            return active.sort((a, b) => a.timestamp - b.timestamp);
+        }
+
+        function getActiveBonusBalance() {
+            return getActiveBonusEntries().reduce((sum, entry) => sum + entry.amount, 0);
+        }
+
+        function getNearestBonusExpiryText() {
+            const active = getActiveBonusEntries();
+            if (!active.length) return 'Нет активных бонусов';
+            const nowMs = Date.now();
+            const nearest = active.reduce((min, entry) => {
+                const remaining = BONUS_TTL_MS - (nowMs - entry.timestamp);
+                return remaining < min ? remaining : min;
+            }, Infinity);
+            if (nearest <= 0) return 'Бонусы скоро сгорят';
+            const hours = Math.floor(nearest / (1000 * 60 * 60));
+            const minutes = Math.floor((nearest % (1000 * 60 * 60)) / (1000 * 60));
+            return `Ближайшее сгорание через ${hours} ч. ${minutes} мин.`;
+        }
+
+        function pruneExpiredBonuses() {
+            const nowMs = Date.now();
+            pendingBonusEntries = pendingBonusEntries.filter(entry => isBonusEntryActive(entry, nowMs));
+            savePendingBonuses();
+        }
+
+        function refreshBonusUI() {
+            pruneExpiredBonuses();
+            currentBalance = getActiveBonusBalance();
+            const balanceText = String(currentBalance);
+            const userBalanceEl = document.getElementById('user-balance');
+            const wheelBalanceEl = document.getElementById('wheel-active-bonuses');
+            if (userBalanceEl) userBalanceEl.innerText = balanceText;
+            if (wheelBalanceEl) wheelBalanceEl.innerText = balanceText;
+
+            const expiryText = getNearestBonusExpiryText();
+            const profileExpiryEl = document.getElementById('profile-bonus-expiry');
+            const wheelExpiryEl = document.getElementById('wheel-bonus-expiry');
+            if (profileExpiryEl) profileExpiryEl.innerText = expiryText;
+            if (wheelExpiryEl) {
+                wheelExpiryEl.innerText = currentBalance > 0
+                    ? expiryText
+                    : 'Бонусы действуют 24 часа с момента выигрыша';
+            }
+        }
+
+        function initBonusSystem() {
+            serverBonusEntries = loadBonusesFromBot();
+            pendingBonusEntries = loadPendingBonuses();
+            refreshBonusUI();
+            if (bonusExpiryTimer) clearInterval(bonusExpiryTimer);
+            bonusExpiryTimer = setInterval(refreshBonusUI, 60000);
+        }
+
+        function addWheelBonus(amount) {
+            pendingBonusEntries.push({ amount: parseInt(amount, 10) || 0, timestamp: Date.now() });
+            savePendingBonuses();
+            refreshBonusUI();
+        }
+
+        function getUnsyncedBonusesPayload() {
+            const nowMs = Date.now();
+            return pendingBonusEntries
+                .filter(entry => isBonusEntryActive(entry, nowMs))
+                .map(entry => ({
+                    amount: entry.amount,
+                    timestamp: entry.timestamp
+                }));
+        }
+
+        function clearPendingBonusesAfterSync() {
+            pendingBonusEntries = [];
+            savePendingBonuses();
+        }
+
+        function cacheCatalog(data) {
+            if (!Array.isArray(data) || !data.length) return;
+            try {
+                localStorage.setItem('waka_catalog_cache', JSON.stringify(data));
+                localStorage.setItem('waka_catalog_cache_time', String(Date.now()));
+            } catch (e) {}
+        }
+
+        function loadCachedCatalog() {
+            try {
+                const data = JSON.parse(localStorage.getItem('waka_catalog_cache') || 'null');
+                return Array.isArray(data) && data.length ? data : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function loadProductsFromBot() {
+            try {
+                const apiData = await apiRequest('/catalog');
+                if (Array.isArray(apiData.products) && apiData.products.length) {
+                    cacheCatalog(apiData.products);
+                    return apiData.products;
+                }
+            } catch (e) {
+                console.warn('API каталога временно недоступен:', e.message);
+            }
+
+            const b64 = new URLSearchParams(window.location.search).get('catalog');
+            if (b64 && String(b64).trim()) {
+                try {
+                    const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
+                    const binary = atob(normalized);
+                    const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+                    const data = JSON.parse(new TextDecoder().decode(bytes));
+                    if (Array.isArray(data) && data.length > 0) {
+                        cacheCatalog(data);
+                        return data;
+                    }
+                } catch (e) {
+                    console.error('Ошибка чтения каталога от бота:', e);
+                }
+            }
+
+            try {
+                const response = await fetch(`./catalog.json?v=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        cacheCatalog(data);
+                        return data;
+                    }
+                }
+            } catch (e) {
+                console.warn('Свежий catalog.json недоступен, используется локальная копия.');
+            }
+
+            return loadCachedCatalog() || getDefaultProducts();
+        }
+
+        function getBasePrice(product) {
+            if (product.basePrice != null && product.basePrice > 0) return product.basePrice;
+            if (product.oldPrice > product.price) return product.oldPrice;
+            return product.price;
+        }
+
+        function getDiscountPercent(product) {
+            if (product.discountPercent != null) return Number(product.discountPercent) || 0;
+            const match = String(product.discount || '').match(/(\d+)/);
+            if (match) return parseInt(match[1], 10);
+            if (product.oldPrice > product.price) {
+                return Math.round((1 - product.price / product.oldPrice) * 100);
+            }
+            return 0;
+        }
+
+        function applyDiscount(product, percent) {
+            const p = Math.max(0, Math.min(99, parseInt(percent, 10) || 0));
+            const base = getBasePrice(product);
+            product.basePrice = base;
+            product.discountPercent = p;
+            if (p > 0) {
+                product.discount = '-' + p + '%';
+                product.oldPrice = base;
+                product.price = Math.round(base * (1 - p / 100));
+            } else {
+                product.discount = '';
+                product.oldPrice = base;
+                product.price = base;
+            }
+        }
+
+        function normalizeProductPrices(product) {
+            if (product.basePrice == null || product.basePrice <= 0) {
+                product.basePrice = product.oldPrice > product.price ? product.oldPrice : product.price;
+            }
+            applyDiscount(product, getDiscountPercent(product));
+        }
+
+        const PRODUCT_STATUSES = {
+            instock: { value: 'instock', label: 'В наличии', badgeClass: 'status-badge-instock' },
+            soon: { value: 'soon', label: 'Скоро будет', badgeClass: 'status-badge-soon' },
+            outofstock: { value: 'outofstock', label: 'Нет в наличии', badgeClass: 'status-badge-outofstock' }
+        };
+
+        function normalizeProductStatus(product) {
+            const status = product.status;
+            if (status === 'soon' || status === 'outofstock') return status;
+            return 'instock';
+        }
+
+        function getProductStatus(product) {
+            return PRODUCT_STATUSES[normalizeProductStatus(product)] || PRODUCT_STATUSES.instock;
+        }
+
+        function renderStatusBadge(statusInfo, extraClass = '') {
+            return `<span class="status-badge ${statusInfo.badgeClass} ${extraClass}">${statusInfo.label}</span>`;
+        }
+
+        function getTelegramUserId() {
+            const unsafeId = tg?.initDataUnsafe?.user?.id;
+            if (unsafeId != null) return String(unsafeId);
+
+            const initData = tg?.initData || '';
+            if (initData) {
+                try {
+                    const userRaw = new URLSearchParams(initData).get('user');
+                    if (userRaw) return String(JSON.parse(userRaw).id);
+                } catch (e) {}
+            }
+            return null;
+        }
+
+        function getCurrentProfileUser() {
+            let initDataUser = null;
+            const initData = tg?.initData || '';
+            if (initData) {
+                try {
+                    const userRaw = new URLSearchParams(initData).get('user');
+                    if (userRaw) initDataUser = JSON.parse(userRaw);
+                } catch (e) {}
+            }
+
+            const telegramUser = tg?.initDataUnsafe?.user || initDataUser;
+            const linkUser = decodeBase64Json(new URLSearchParams(window.location.search).get('user')) || {};
+            return {
+                id: telegramUser?.id ?? linkUser.id ?? null,
+                first_name: telegramUser?.first_name || linkUser.first_name || 'Пользователь',
+                last_name: telegramUser?.last_name || '',
+                username: telegramUser?.username || (
+                    linkUser.username && linkUser.username !== 'None' ? linkUser.username : ''
+                ),
+                photo_url: telegramUser?.photo_url || ''
+            };
+        }
+
+        function renderCurrentUserProfile(serverUser = null) {
+            const user = serverUser || getCurrentProfileUser();
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+            const nameEl = document.getElementById('user-name');
+            const idEl = document.getElementById('user-id');
+            const usernameEl = document.getElementById('user-username');
+            const avatarEl = document.getElementById('user-avatar');
+
+            if (nameEl) nameEl.innerText = fullName || 'Пользователь';
+            if (idEl) idEl.innerText = user.id ? `Telegram ID: ${user.id}` : 'Telegram ID не определён';
+            if (usernameEl) usernameEl.innerText = user.username ? `@${user.username}` : 'Telegram пользователь';
+            if (!avatarEl) return;
+
+            avatarEl.innerHTML = '';
+            if (user.photo_url) {
+                const image = document.createElement('img');
+                image.src = user.photo_url;
+                image.alt = `Аватар ${fullName}`;
+                image.className = 'w-full h-full object-cover';
+                image.onerror = () => {
+                    avatarEl.innerHTML = `<span class="text-lg font-black">${escapeHtml((user.first_name || 'П').slice(0, 1).toUpperCase())}</span>`;
+                };
+                avatarEl.appendChild(image);
+            } else {
+                avatarEl.innerHTML = `<span class="text-lg font-black">${escapeHtml((user.first_name || 'П').slice(0, 1).toUpperCase())}</span>`;
+            }
+        }
+
+        function getOrdersStorageKey() {
+            return `waka_orders_${getTelegramUserId() || getCurrentProfileUser().id || 'guest'}`;
+        }
+
+        function getStoredOrders() {
+            try {
+                const data = JSON.parse(localStorage.getItem(getOrdersStorageKey()) || '[]');
+                return Array.isArray(data) ? data : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveStoredOrders(orders) {
+            localStorage.setItem(getOrdersStorageKey(), JSON.stringify(orders.slice(0, 100)));
+            updateProfileStats();
+        }
+
+        function createLocalOrder(total, phone, address) {
+            const code = 'WK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+            const order = {
+                code,
+                createdAt: new Date().toISOString(),
+                status: 'processing',
+                phone,
+                address,
+                total: parseInt(total, 10) || 0,
+                userId: getTelegramUserId() || getCurrentProfileUser().id || 'guest',
+                userName: document.getElementById('user-name')?.innerText || 'Пользователь',
+                items: cart.map(item => ({
+                    name: item.name,
+                    flavor: item.flavor,
+                    qty: item.qty,
+                    price: item.price
+                }))
+            };
+            saveStoredOrders([order, ...getStoredOrders()]);
+            return order;
+        }
+
+        function getOrderStatusMeta(status) {
+            const statuses = {
+                processing: { label: 'В обработке', className: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },
+                confirmed: { label: 'Подтвержден', className: 'text-blue-300 bg-blue-500/10 border-blue-500/20' },
+                delivery: { label: 'Доставляется', className: 'text-purple-300 bg-purple-500/10 border-purple-500/20' },
+                completed: { label: 'Завершен', className: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' }
+            };
+            return statuses[status] || statuses.processing;
+        }
+
+        function formatOrderDate(value) {
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Дата не указана';
+            return date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        async function renderOrdersHistory() {
+            const container = document.getElementById('orders-history-list');
+            if (!container) return;
+            container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin text-xl"></i><p class="text-xs mt-3">Загружаем заказы...</p></div>';
+            let orders = [];
+            try {
+                const data = await apiRequest('/profile/orders');
+                orders = Array.isArray(data.orders) ? data.orders : [];
+            } catch (e) {
+                orders = getStoredOrders();
+            }
+            document.getElementById('profile-orders-count').innerText = orders.length;
+            if (!orders.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-receipt text-2xl mb-3"></i><p class="font-bold text-sm text-gray-400">Заказов пока нет</p><p class="text-xs mt-1">После оформления они появятся здесь.</p></div>';
+                return;
+            }
+            container.innerHTML = orders.map(order => {
+                const status = getOrderStatusMeta(order.status);
+                const items = (order.items || []).map(item =>
+                    `<li class="flex justify-between gap-3"><span>${escapeHtml(item.name)} · ${escapeHtml(item.flavor || '')}</span><b class="whitespace-nowrap">×${item.qty}</b></li>`
+                ).join('');
+                return `<article class="order-card">
+                    <div class="flex justify-between items-start gap-3">
+                        <div><p class="font-black">${escapeHtml(order.code)}</p><p class="text-[10px] text-gray-500 mt-1">${formatOrderDate(order.createdAt)}</p></div>
+                        <span class="text-[10px] font-bold border rounded-lg px-2 py-1 ${status.className}">${status.label}</span>
+                    </div>
+                    <ul class="text-xs text-gray-400 space-y-1.5 mt-4">${items}</ul>
+                    <div class="flex justify-between border-t border-gray-800 mt-4 pt-3"><span class="text-xs text-gray-500">Итого</span><strong>${order.total} сом</strong></div>
+                </article>`;
+            }).join('');
+        }
+
+        async function updateProfileStats() {
+            const count = document.getElementById('profile-orders-count');
+            if (!count) return;
+            try {
+                const data = await apiRequest('/profile');
+                count.innerText = data.ordersCount || 0;
+                if (data.user) {
+                    renderCurrentUserProfile(data.user);
+                }
+            } catch (e) {
+                count.innerText = getStoredOrders().length;
+            }
+        }
+
+        function openAppPage(pageId) {
+            document.getElementById(pageId)?.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            if (pageId === 'orders-page') renderOrdersHistory();
+        }
+
+        function closeAppPage(pageId) {
+            document.getElementById(pageId)?.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function getReferralLink() {
+            const userId = getTelegramUserId() || getCurrentProfileUser().id;
+            const botUsername = new URLSearchParams(window.location.search).get('bot_username');
+            if (!botUsername || !userId) return '';
+            return `https://t.me/${botUsername}?start=ref_${encodeURIComponent(userId)}`;
+        }
+
+        function loadReferralStatsFromBot() {
+            const data = decodeBase64Json(new URLSearchParams(window.location.search).get('referrals'));
+            return {
+                invited: parseInt(data?.invited, 10) || 0,
+                earned: parseInt(data?.earned, 10) || 0
+            };
+        }
+
+        function openReferralPage() {
+            const referralLink = getReferralLink();
+            const link = document.getElementById('referral-link');
+            if (link) link.value = referralLink || 'Перезапустите бота командой /start';
+            const stats = loadReferralStatsFromBot();
+            document.getElementById('referral-invited').innerText = stats.invited;
+            document.getElementById('referral-earned').innerText = stats.earned;
+            openAppPage('referral-page');
+        }
+
+        async function copyReferralLink() {
+            const link = getReferralLink();
+            if (!link) {
+                alert('Перезапустите бота командой /start, чтобы получить реферальную ссылку.');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(link);
+                if (tg.showPopup) tg.showPopup({ message: 'Ссылка скопирована' });
+                else alert('Ссылка скопирована');
+            } catch (e) {
+                document.getElementById('referral-link')?.select();
+            }
+        }
+
+        function shareReferralLink() {
+            const referralLink = getReferralLink();
+            if (!referralLink) {
+                alert('Перезапустите бота командой /start, чтобы получить реферальную ссылку.');
+                return;
+            }
+            const text = 'Присоединяйся к WAKA ZYNK!';
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
+            if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink(shareUrl);
+            else window.open(shareUrl, '_blank');
+        }
+
+        function isAdminUser() {
+            const userId = getTelegramUserId();
+            if (userId && ADMIN_IDS.has(userId)) return true;
+            return new URLSearchParams(window.location.search).get('is_admin') === '1';
+        }
+
+        function isAdminPanelOpen() {
+            return document.getElementById('admin-panel')?.classList.contains('admin-open');
+        }
+
+        function updateAdminUI() {
+            const btn = document.getElementById('btn-admin');
+            if (!btn) return;
+            const admin = isAdminUser();
+            btn.style.display = admin ? 'flex' : 'none';
+            btn.classList.toggle('admin-visible', admin);
+        }
+
+        async function openAdminPanel() {
+            if (!isAdminUser()) return;
+            const panel = document.getElementById('admin-panel');
+            if (!panel) return;
+            panel.classList.add('admin-open');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('admin-content').innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin text-xl"></i><p class="text-xs mt-3">Загружаем данные...</p></div>';
+            try {
+                const data = await apiRequest('/admin/dashboard');
+                adminOrders = data.orders || [];
+                adminUsers = data.users || [];
+                adminStatsData = data.stats || {};
+            } catch (e) {
+                alert('Не удалось загрузить админку: ' + e.message);
+            }
+            renderAdminPanel();
+        }
+
+        async function saveAdminChanges() {
+            if (!isAdminUser()) {
+                alert('Нет доступа.');
+                return;
+            }
+            if (!confirm('Сохранить изменения каталога?')) return;
+            try {
+                await apiRequest('/admin/catalog', {
+                    method: 'PUT',
+                    body: JSON.stringify({ products })
+                });
+                cacheCatalog(products);
+                alert('Каталог сохранён. Изменения уже доступны всем пользователям.');
+            } catch (e) {
+                alert('Ошибка отправки: ' + e.message);
+            }
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('admin-panel')?.classList.remove('admin-open');
+            document.body.style.overflow = '';
+        }
+
+        function renderAdminStats() {
+            const stats = document.getElementById('admin-stats');
+            if (!stats) return;
+            const now = new Date();
+            const todayProfit = adminOrders
+                .filter(order => new Date(order.createdAt).toDateString() === now.toDateString())
+                .reduce((sum, order) => sum + (Number(order.profit) || Math.round((Number(order.total) || 0) * 0.3)), 0);
+            const monthProfit = adminOrders
+                .filter(order => {
+                    const date = new Date(order.createdAt);
+                    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+                })
+                .reduce((sum, order) => sum + (Number(order.profit) || Math.round((Number(order.total) || 0) * 0.3)), 0);
+            const clientCount = adminUsers.length || new Set(adminOrders.map(order => String(order.userId))).size;
+            stats.innerHTML = `
+                <div class="admin-stat-card"><div class="flex justify-between text-purple-400"><i class="fa-solid fa-receipt"></i><span class="text-[10px] text-gray-600">ВСЕГО</span></div><p class="text-3xl font-black mt-4">${adminOrders.length}</p><p class="text-xs text-gray-500 mt-1">Заказы</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-emerald-400"><i class="fa-solid fa-arrow-trend-up"></i><span class="text-[10px] text-gray-600">СЕГОДНЯ</span></div><p class="text-2xl font-black mt-4">${Math.max(Number(adminStatsData.todayProfit) || 0, todayProfit)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-blue-400"><i class="fa-solid fa-users"></i><span class="text-[10px] text-gray-600">БАЗА</span></div><p class="text-3xl font-black mt-4">${clientCount}</p><p class="text-xs text-gray-500 mt-1">Клиенты</p></div>
+                <div class="admin-stat-card"><div class="flex justify-between text-pink-400"><i class="fa-solid fa-chart-column"></i><span class="text-[10px] text-gray-600">МЕСЯЦ</span></div><p class="text-2xl font-black mt-4">${Math.max(Number(adminStatsData.monthProfit) || 0, monthProfit)} <small class="text-xs text-gray-500">сом</small></p><p class="text-xs text-gray-500 mt-1">Чистая прибыль</p></div>`;
+        }
+
+        function renderAdminOrders() {
+            const content = document.getElementById('admin-content');
+            const filters = [
+                ['all', 'Все'],
+                ['processing', 'В обработке'],
+                ['confirmed', 'Подтвержден'],
+                ['delivery', 'Доставляется'],
+                ['completed', 'Завершен']
+            ];
+            let orders = [...adminOrders];
+            if (currentAdminOrderFilter !== 'all') {
+                orders = orders.filter(order => order.status === currentAdminOrderFilter);
+            }
+            if (adminOrderSearch.trim()) {
+                const query = adminOrderSearch.trim().toLowerCase();
+                orders = orders.filter(order =>
+                    String(order.code).toLowerCase().includes(query)
+                    || String(order.userName).toLowerCase().includes(query)
+                    || String(order.phone).toLowerCase().includes(query)
+                );
+            }
+            const cards = orders.length ? orders.map(order => {
+                const status = getOrderStatusMeta(order.status);
+                const itemCount = (order.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+                return `<article class="order-card">
+                    <div class="flex justify-between gap-3">
+                        <div><p class="font-black">${escapeHtml(order.code)}</p><p class="text-[10px] text-gray-500 mt-1">${formatOrderDate(order.createdAt)}</p></div>
+                        <span class="h-fit text-[10px] font-bold border rounded-lg px-2 py-1 ${status.className}">${status.label}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-xs">
+                        <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-gray-600">Клиент</p><p class="font-bold mt-1 truncate">${escapeHtml(order.userName || 'Пользователь')}</p></div>
+                        <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-gray-600">Товары</p><p class="font-bold mt-1">${itemCount} шт.</p></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-4"><strong>${order.total} сом</strong><select data-action="order-status" data-order-code="${escapeHtml(order.code)}" class="bg-[#1b2332] rounded-xl px-3 py-2 text-xs outline-none"><option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option><option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Подтвержден</option><option value="delivery" ${order.status === 'delivery' ? 'selected' : ''}>Доставляется</option><option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершен</option></select></div>
+                </article>`;
+            }).join('') : '<div class="empty-state"><i class="fa-solid fa-magnifying-glass text-xl mb-3"></i><p class="font-bold text-sm">Заказы не найдены</p></div>';
+
+            content.innerHTML = `
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 text-sm"></i>
+                    <input id="admin-order-search" value="${escapeHtml(adminOrderSearch)}" placeholder="Поиск по коду, клиенту, телефону" class="w-full bg-[#121824] border border-gray-800 rounded-2xl py-3.5 pl-11 pr-4 text-sm outline-none focus:border-purple-500">
+                </div>
+                <div class="flex gap-2 overflow-x-auto mb-4">${filters.map(([value, label]) => `<button class="admin-order-filter ${currentAdminOrderFilter === value ? 'active' : ''}" data-order-filter="${value}">${label}</button>`).join('')}</div>
+                <div class="space-y-3">${cards}</div>`;
+        }
+
+        function renderAdminAnalytics() {
+            const content = document.getElementById('admin-content');
+            const orders = adminOrders;
+            const revenue = adminStatsData.revenue || 0;
+            const average = orders.length ? Math.round(revenue / orders.length) : 0;
+            content.innerHTML = `
+                <div class="space-y-3">
+                    <div class="order-card"><p class="text-xs text-gray-500">Общая выручка</p><p class="text-3xl font-black mt-2">${revenue} <small class="text-sm text-gray-500">сом</small></p></div>
+                    <div class="order-card"><p class="text-xs text-gray-500">Средний чек</p><p class="text-3xl font-black mt-2">${average} <small class="text-sm text-gray-500">сом</small></p></div>
+                    <div class="order-card"><p class="text-xs text-gray-500 mb-3">Статусы заказов</p>${['processing', 'confirmed', 'delivery', 'completed'].map(value => { const meta = getOrderStatusMeta(value); const count = orders.filter(order => order.status === value).length; return `<div class="flex justify-between py-2 border-b border-gray-900 last:border-0"><span class="text-sm ${meta.className.split(' ')[0]}">${meta.label}</span><b>${count}</b></div>`; }).join('')}</div>
+                </div>`;
+        }
+
+        function renderAdminUsers() {
+            const content = document.getElementById('admin-content');
+            const users = adminUsers.length ? adminUsers : [...new Map(adminOrders.map(order => [
+                String(order.userId),
+                {
+                    telegram_id: order.userId,
+                    first_name: order.userName || 'Пользователь',
+                    last_name: '',
+                    username: order.username || '',
+                    photo_url: '',
+                    orders_count: adminOrders.filter(item => String(item.userId) === String(order.userId)).length,
+                    spent: adminOrders.filter(item => String(item.userId) === String(order.userId)).reduce((sum, item) => sum + (Number(item.total) || 0), 0)
+                }
+            ])).values()];
+            content.innerHTML = users.length ? users.map(user => `
+                <div class="order-card flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center overflow-hidden">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user"></i>'}</div>
+                    <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml([user.first_name, user.last_name].filter(Boolean).join(' '))}</p><p class="text-[11px] text-gray-500">ID: ${user.telegram_id}${user.username ? ` · @${escapeHtml(user.username)}` : ''}</p><p class="text-[10px] text-gray-600 mt-1">${user.spent || 0} сом покупок</p></div>
+                    <div class="text-right"><p class="font-black">${user.orders_count || 0}</p><p class="text-[10px] text-gray-600">заказов</p></div>
+                </div>`).join('') : '<div class="empty-state">Клиентов пока нет</div>';
+        }
+
+        function renderAdminPanel() {
+            renderAdminStats();
+            document.querySelectorAll('.admin-tab').forEach(button => {
+                button.classList.toggle('active', button.dataset.adminTab === currentAdminTab);
+            });
+            if (currentAdminTab === 'orders') renderAdminOrders();
+            if (currentAdminTab === 'stats') renderAdminAnalytics();
+            if (currentAdminTab === 'products') renderAdminProductsEditor();
+            if (currentAdminTab === 'users') renderAdminUsers();
+        }
+
+        function renderAdminProductsEditor() {
+            const content = document.getElementById('admin-content');
+            if (!content) return;
+
+            let html = `
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg">Товары</h3>
+                    <button type="button" data-action="add-product" class="bg-purple-600 px-4 py-2 rounded-xl text-sm font-bold">+ Товар</button>
+                </div>
+                <button type="button" data-action="save-changes"
+                        class="w-full py-3 mb-5 bg-emerald-600 rounded-xl font-bold text-sm">
+                    💾 Сохранить изменения
+                </button>`;
+
+            products.forEach((product, pIndex) => {
+                const flavors = Array.isArray(product.flavors) ? product.flavors : [];
+                html += `
+                    <div class="bg-zinc-900 rounded-2xl p-4 mb-5">
+                        <div class="space-y-3 mb-4">
+                            <input type="text" value="${escapeHtml(product.name)}"
+                                   data-action="product-name" data-pindex="${pIndex}"
+                                   class="w-full bg-zinc-800 text-lg font-bold rounded-xl px-3 py-2 outline-none">
+                            <div class="flex gap-2 items-center flex-wrap">
+                                <input type="number" value="${getBasePrice(product)}"
+                                       data-action="product-price" data-pindex="${pIndex}"
+                                       class="w-28 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none">
+                                <span class="text-xs text-gray-400">сом</span>
+                                <input type="number" value="${getDiscountPercent(product)}" min="0" max="99"
+                                       data-action="product-discount" data-pindex="${pIndex}"
+                                       class="w-20 bg-zinc-800 text-center rounded-xl py-2 font-bold outline-none"
+                                       placeholder="%">
+                                <span class="text-xs text-gray-400">Скидка (%)</span>
+                            </div>
+                            <div class="bg-zinc-950 rounded-xl p-3">
+                                <label class="text-xs text-gray-400 block mb-2">Себестоимость товара, сом</label>
+                                <input type="number" value="${Number(product.costPrice) || 0}" min="0"
+                                       data-action="product-cost" data-pindex="${pIndex}"
+                                       class="w-full bg-zinc-800 rounded-xl px-3 py-2 font-bold outline-none"
+                                       placeholder="Например: 1700">
+                                <p class="text-[10px] text-gray-600 mt-2">Используется только для расчёта чистой прибыли.</p>
+                            </div>
+                            <div class="flex gap-3 items-center bg-zinc-950 rounded-xl p-3">
+                                <div class="w-16 h-16 rounded-xl bg-zinc-800 overflow-hidden shrink-0">
+                                    ${product.img ? `<img src="${escapeHtml(product.img)}" class="w-full h-full object-cover">` : '<div class="w-full h-full flex items-center justify-center text-zinc-600"><i class="fa-solid fa-image"></i></div>'}
+                                </div>
+                                <label class="flex-1 bg-purple-600 text-center py-3 rounded-xl text-xs font-bold cursor-pointer">
+                                    <i class="fa-solid fa-upload mr-1"></i> Загрузить фото
+                                    <input type="file" accept="image/jpeg,image/png,image/webp"
+                                           data-action="product-upload" data-pindex="${pIndex}" class="hidden">
+                                </label>
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-400 block mb-1">Статус наличия</span>
+                                <select data-action="product-status" data-pindex="${pIndex}"
+                                        class="w-full bg-zinc-800 text-sm rounded-xl px-3 py-2 outline-none">
+                                    <option value="instock" ${normalizeProductStatus(product) === 'instock' ? 'selected' : ''}>В наличии</option>
+                                    <option value="soon" ${normalizeProductStatus(product) === 'soon' ? 'selected' : ''}>Скоро будет</option>
+                                    <option value="outofstock" ${normalizeProductStatus(product) === 'outofstock' ? 'selected' : ''}>Нет в наличии</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="space-y-2">`;
+
+                flavors.forEach((flavor, fIndex) => {
+                    html += `
+                        <div class="flex items-center gap-2 bg-zinc-950 p-3 rounded-xl">
+                            <input type="text" value="${escapeHtml(flavor.name)}"
+                                   data-action="flavor-name" data-pindex="${pIndex}" data-findex="${fIndex}"
+                                   class="flex-1 bg-transparent outline-none text-sm font-medium">
+                            <input type="number" value="${flavor.stock}" min="0"
+                                   data-action="flavor-stock" data-pindex="${pIndex}" data-findex="${fIndex}"
+                                   class="w-16 bg-zinc-800 text-center rounded-lg py-1.5 outline-none text-sm">
+                            <button type="button" data-action="delete-flavor" data-pindex="${pIndex}" data-findex="${fIndex}" class="text-red-500 text-xl px-1">&times;</button>
+                        </div>`;
+                });
+
+                html += `
+                        </div>
+                        <button type="button" data-action="add-flavor" data-pindex="${pIndex}"
+                                class="w-full py-2.5 mt-3 border border-dashed border-purple-400 text-purple-400 rounded-xl text-sm font-bold">
+                            + Добавить вкус
+                        </button>
+                    </div>`;
+            });
+
+            content.innerHTML = html;
+        }
+
+        function bindAdminEvents() {
+            document.getElementById('btn-admin')?.addEventListener('click', openAdminPanel);
+            document.getElementById('btn-admin-close')?.addEventListener('click', closeAdminPanel);
+            document.getElementById('admin-tabs')?.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-admin-tab]');
+                if (!button) return;
+                currentAdminTab = button.dataset.adminTab;
+                renderAdminPanel();
+            });
+
+            document.getElementById('admin-content')?.addEventListener('click', (e) => {
+                const filter = e.target.closest('[data-order-filter]');
+                if (filter) {
+                    currentAdminOrderFilter = filter.dataset.orderFilter;
+                    renderAdminOrders();
+                    return;
+                }
+                const btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                const action = btn.dataset.action;
+                const pIndex = parseInt(btn.dataset.pindex, 10);
+                const fIndex = parseInt(btn.dataset.findex, 10);
+
+                if (action === 'add-product') addNewProduct();
+                if (action === 'add-flavor') addFlavor(pIndex);
+                if (action === 'delete-flavor') deleteFlavor(pIndex, fIndex);
+                if (action === 'save-changes') saveAdminChanges();
+            });
+
+            document.getElementById('admin-content')?.addEventListener('change', async (e) => {
+                const el = e.target.closest('[data-action]');
+                if (!el) return;
+                const action = el.dataset.action;
+                const pIndex = parseInt(el.dataset.pindex, 10);
+                const fIndex = parseInt(el.dataset.findex, 10);
+
+                if (action === 'product-name') updateProductName(pIndex, el.value);
+                if (action === 'product-price') updateProductPrice(pIndex, el.value);
+                if (action === 'product-discount') updateProductDiscount(pIndex, el.value);
+                if (action === 'product-cost') updateProductCost(pIndex, el.value);
+                if (action === 'product-image') updateProductImage(pIndex, el.value);
+                if (action === 'product-upload' && el.files?.[0]) uploadProductImage(pIndex, el.files[0]);
+                if (action === 'product-status') updateProductStatus(pIndex, el.value);
+                if (action === 'flavor-name') updateFlavorName(pIndex, fIndex, el.value);
+                if (action === 'flavor-stock') updateFlavorStock(pIndex, fIndex, el.value);
+                if (action === 'order-status') {
+                    const order = adminOrders.find(item => item.code === el.dataset.orderCode);
+                    try {
+                        await apiRequest('/admin/orders/' + encodeURIComponent(el.dataset.orderCode), {
+                            method: 'PATCH',
+                            body: JSON.stringify({ status: el.value })
+                        });
+                        if (order) order.status = el.value;
+                        renderAdminPanel();
+                    } catch (error) {
+                        alert('Не удалось изменить статус: ' + error.message);
+                    }
+                }
+            });
+
+            document.getElementById('admin-content')?.addEventListener('input', (e) => {
+                if (e.target.id !== 'admin-order-search') return;
+                adminOrderSearch = e.target.value;
+                const cursorPosition = e.target.selectionStart;
+                renderAdminOrders();
+                const input = document.getElementById('admin-order-search');
+                input?.focus();
+                input?.setSelectionRange(cursorPosition, cursorPosition);
+            });
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function syncAfterProductChange() {
+            renderProducts();
+            refreshOpenDetails();
+            if (isAdminPanelOpen()) renderAdminPanel();
+        }
+
+        function updateProductName(pIndex, newName) {
+            products[pIndex].name = newName.trim() || products[pIndex].name;
+            syncAfterProductChange();
+        }
+
+        function updateProductPrice(pIndex, newPrice) {
+            const price = parseInt(newPrice, 10);
+            if (!isNaN(price) && price > 0) {
+                products[pIndex].basePrice = price;
+                applyDiscount(products[pIndex], getDiscountPercent(products[pIndex]));
+            }
+            syncAfterProductChange();
+        }
+
+        function updateProductDiscount(pIndex, percent) {
+            applyDiscount(products[pIndex], percent);
+            syncAfterProductChange();
+        }
+
+        function updateProductCost(pIndex, value) {
+            products[pIndex].costPrice = Math.max(0, parseInt(value, 10) || 0);
+            syncAfterProductChange();
+        }
+
+        function updateProductImage(pIndex, newImg) {
+            products[pIndex].img = newImg.trim();
+            syncAfterProductChange();
+        }
+
+        async function uploadProductImage(pIndex, file) {
+            const form = new FormData();
+            form.append('file', file);
+            form.append('init_data', tg.initData || '');
+            try {
+                const data = await apiRequest('/admin/upload', { method: 'POST', body: form });
+                products[pIndex].img = data.url;
+                syncAfterProductChange();
+                alert('Фото загружено. Нажмите «Сохранить изменения», чтобы обновить каталог.');
+            } catch (error) {
+                alert('Не удалось загрузить фото: ' + error.message);
+            }
+        }
+
+        function updateProductStatus(pIndex, newStatus) {
+            products[pIndex].status = normalizeProductStatus({ status: newStatus });
+            syncAfterProductChange();
+        }
+
+        function updateFlavorName(pIndex, fIndex, newName) {
+            products[pIndex].flavors[fIndex].name = newName.trim() || products[pIndex].flavors[fIndex].name;
+            syncAfterProductChange();
+        }
+
+        function updateFlavorStock(pIndex, fIndex, newStock) {
+            const stock = parseInt(newStock, 10);
+            products[pIndex].flavors[fIndex].stock = isNaN(stock) ? 0 : Math.max(0, stock);
+            syncAfterProductChange();
+        }
+
+        function deleteFlavor(pIndex, fIndex) {
+            if (!confirm('Удалить этот вкус?')) return;
+            products[pIndex].flavors.splice(fIndex, 1);
+            syncAfterProductChange();
+        }
+
+        function addFlavor(pIndex) {
+            const name = prompt('Название нового вкуса:');
+            if (!name || !name.trim()) return;
+            const stockStr = prompt('Количество в наличии:', '10');
+            const stock = parseInt(stockStr, 10);
+            products[pIndex].flavors.push({ name: name.trim(), stock: isNaN(stock) ? 0 : stock });
+            syncAfterProductChange();
+        }
+
+        function addNewProduct() {
+            const name = prompt('Название нового товара:');
+            if (!name || !name.trim()) return;
+            const priceStr = prompt('Цена товара (сом):', '2300');
+            const price = parseInt(priceStr, 10) || 2300;
+            products.push({
+                id: Date.now(),
+                name: name.trim(),
+                price: price,
+                basePrice: price,
+                oldPrice: price,
+                discount: '',
+                discountPercent: 0,
+                costPrice: 0,
+                status: 'instock',
+                img: 'https://picsum.photos/id/' + (Math.floor(Math.random() * 100) + 10) + '/300/300',
+                flavors: []
+            });
+            syncAfterProductChange();
+        }
+
+        function closeTermsModal() {
+            const modal = document.getElementById('terms-modal');
+            const checkbox = document.getElementById('dont-show-again');
+            if (checkbox.checked) localStorage.setItem('terms-accepted', 'true');
+            modal.style.display = 'none';
+        }
+
+        async function submitOrderFinal() {
+            const phone = document.getElementById('checkout-phone')?.value || 'Не указан';
+            const address = document.getElementById('checkout-address')?.value || 'Не указан';
+            const subtotal = parseInt(document.getElementById('summary-subtotal')?.innerText || '0', 10) || 0;
+            const total = parseInt(document.getElementById('summary-total')?.innerText || '0', 10) || 0;
+            const bonusUsed = parseInt(document.getElementById('summary-discount')?.innerText || '0', 10) || 0;
+            const submitButton = document.querySelector('[onclick="submitOrderFinal()"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Отправляем заказ...';
+            }
+
+            try {
+                const result = await apiRequest('/orders', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        phone,
+                        address,
+                        items: cart,
+                        subtotal,
+                        bonus_used: bonusUsed,
+                        total
+                    })
+                });
+                globalOrderData = { code: result.code };
+                clearPendingBonusesAfterSync();
+                cart = [];
+                localStorage.setItem('waka_cart', JSON.stringify(cart));
+                updateCartCount();
+                closeCheckoutForce();
+                document.getElementById('success-modal').style.display = 'flex';
+                updateProfileStats();
+            } catch (error) {
+                alert('Не удалось оформить заказ: ' + error.message);
+            } finally {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="fa-solid fa-check"></i> Подтвердить заказ';
+                }
+            }
+        }
+
+        function triggerTelegramSend() {
+            if (typeof tg.close === 'function') tg.close();
+            else document.getElementById('success-modal').style.display = 'none';
+        }
+
+        function switchTab(tabName) {
+            ['catalog', 'bonuses', 'profile'].forEach(t => {
+                document.getElementById('tab-' + t).classList.add('hidden');
+                document.getElementById('btn-' + t).classList.remove('active-tab');
+            });
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            document.getElementById('btn-' + tabName).classList.add('active-tab');
+            if (tabName === 'bonuses') {
+                refreshBonusUI();
+                checkWheelTimer();
+            }
+            if (tabName === 'profile') refreshBonusUI();
+        }
+
+        function getTotalStock(product) {
+            const flavors = Array.isArray(product.flavors) ? product.flavors : [];
+            return flavors.reduce((sum, f) => sum + (f.stock || 0), 0);
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('catalog-grid');
+            if (!grid) return;
+            if (!Array.isArray(products) || products.length === 0) {
+                products = getDefaultProducts();
+            }
+            grid.innerHTML = '';
+
+            const visibleProducts = currentCatalogFilter === 'all'
+                ? products
+                : products.filter(product => normalizeProductStatus(product) === currentCatalogFilter);
+            const count = visibleProducts.length;
+            const word = count === 1 ? 'товар' : (count >= 2 && count <= 4 ? 'товара' : 'товаров');
+            document.getElementById('product-count').innerText = `${count} ${word}`;
+            document.querySelectorAll('[data-catalog-filter]').forEach(button => {
+                button.classList.toggle('active', button.dataset.catalogFilter === currentCatalogFilter);
+            });
+
+            if (!visibleProducts.length) {
+                grid.innerHTML = '<div class="empty-state col-span-2"><i class="fa-solid fa-box-open text-2xl mb-3"></i><p class="font-bold text-sm text-gray-400">В этой категории пока пусто</p></div>';
+                return;
+            }
+
+            visibleProducts.forEach(p => {
+                const totalStock = getTotalStock(p);
+                const statusInfo = getProductStatus(p);
+                const status = statusInfo.value;
+                const card = document.createElement('div');
+                card.className = 'bg-[#121824] rounded-2xl border border-gray-900 overflow-hidden relative flex flex-col cursor-pointer'
+                    + (status === 'outofstock' ? ' product-card-outofstock' : '')
+                    + (status === 'soon' ? ' product-card-soon' : '');
+                card.onclick = () => openDetails(p.id);
+                const hasDiscount = p.discount && p.oldPrice > p.price;
+                const actionBtnClass = status === 'outofstock'
+                    ? 'bg-gray-700 text-gray-400'
+                    : (status === 'soon' ? 'bg-amber-600/80 text-white' : 'bg-purple-600 text-white');
+                const actionBtnText = status === 'outofstock' ? 'Нет' : (status === 'soon' ? 'Скоро' : 'Выбрать');
+                card.innerHTML = `
+                    ${hasDiscount ? `<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg z-10">${p.discount}</span>` : ''}
+                    <span class="absolute top-2 right-2 z-10">${renderStatusBadge(statusInfo)}</span>
+                    <div class="w-full aspect-square bg-[#171e2c] flex items-center justify-center p-4">
+                        <img src="${p.img}" alt="${escapeHtml(p.name)}" class="rounded-xl object-cover max-h-full${status === 'outofstock' ? ' grayscale' : ''}">
+                    </div>
+                    <div class="p-3 flex-1 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-sm product-card-title">${escapeHtml(p.name)}</h3>
+                            <p class="text-[10px] text-gray-400 mt-1">📦 Всего: ${totalStock} шт.</p>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-base font-black">${p.price}</span>
+                                    <span class="text-[9px] text-gray-400">сом</span>
+                                </div>
+                                ${hasDiscount ? `<span class="text-[10px] line-through text-gray-500">${p.oldPrice} сом</span>` : ''}
+                            </div>
+                            <button class="${actionBtnClass} text-xs font-bold px-3 py-1.5 rounded-xl active:scale-90">${actionBtnText}</button>
+                        </div>
+                    </div>`;
+                card.querySelector('button').onclick = (e) => { e.stopPropagation(); openDetails(p.id); };
+                grid.appendChild(card);
+            });
+        }
+
+        function refreshOpenDetails() {
+            if (!currentProduct) return;
+            const updated = products.find(p => p.id === currentProduct.id);
+            if (!updated) return;
+            currentProduct = updated;
+            document.getElementById('detail-name').innerText = currentProduct.name;
+            document.getElementById('detail-price').innerText = currentProduct.price;
+            const oldPriceEl = document.getElementById('detail-old-price');
+            if (oldPriceEl) {
+                const showOld = currentProduct.oldPrice > currentProduct.price && currentProduct.discount;
+                oldPriceEl.innerText = showOld ? currentProduct.oldPrice + ' сом' : '';
+                oldPriceEl.style.display = showOld ? '' : 'none';
+            }
+            const totalStock = getTotalStock(currentProduct);
+            const statusInfo = getProductStatus(currentProduct);
+            const detailStatusEl = document.getElementById('detail-status');
+            if (detailStatusEl) {
+                const stockText = statusInfo.value === 'instock' ? `: ${totalStock} шт.` : '';
+                detailStatusEl.innerHTML = renderStatusBadge(statusInfo) + (stockText ? `<span class="ml-2 text-gray-400">${stockText}</span>` : '');
+            }
+
+            const flavorsGrid = document.getElementById('flavors-grid');
+            if (!flavorsGrid) return;
+            flavorsGrid.innerHTML = '';
+            (currentProduct.flavors || []).forEach((f, index) => {
+                const btn = document.createElement('button');
+                btn.id = 'flavor-btn-' + index;
+                btn.className = 'flavor-btn bg-[#171e2c] border border-gray-800 rounded-xl p-3 text-center flex flex-col justify-center items-center active:scale-95 transition-all cursor-pointer';
+                btn.innerHTML = `<span class="text-sm font-bold text-white">${escapeHtml(f.name)}</span><span class="text-[10px] text-gray-400 mt-0.5">${f.stock} шт.</span>`;
+                btn.onclick = () => selectFlavor(f.name, index, f.stock);
+                if (selectedFlavor && selectedFlavor.name === f.name) btn.classList.add('selected');
+                flavorsGrid.appendChild(btn);
+            });
+            updateBuyButtonState();
+        }
+
+        function openDetails(id) {
+            currentProduct = products.find(prod => prod.id === id);
+            if (!currentProduct) return;
+
+            selectedFlavor = null;
+            currentDetailQty = 1;
+            document.getElementById('detail-qty').innerText = currentDetailQty;
+            refreshOpenDetails();
+
+            document.getElementById('details-back').classList.remove('hidden');
+            setTimeout(() => document.getElementById('details-sheet').classList.add('active'), 10);
+        }
+
+        function selectFlavor(name, index, stock) {
+            if (stock <= 0) return;
+            selectedFlavor = { name, stock };
+            currentDetailQty = 1;
+            document.getElementById('detail-qty').innerText = currentDetailQty;
+            document.querySelectorAll('.flavor-btn').forEach(btn => btn.classList.remove('selected'));
+            const selectedBtn = document.getElementById('flavor-btn-' + index);
+            if (selectedBtn) selectedBtn.classList.add('selected');
+            updateBuyButtonState();
+        }
+
+        function changeDetailQty(amount) {
+            if (!selectedFlavor) return;
+            const newQty = currentDetailQty + amount;
+            if (newQty >= 1 && newQty <= selectedFlavor.stock) {
+                currentDetailQty = newQty;
+                document.getElementById('detail-qty').innerText = currentDetailQty;
+                updateBuyButtonState();
+            }
+        }
+
+        function updateBuyButtonState() {
+            const btn = document.getElementById('detail-buy-btn');
+            if (!btn || !currentProduct) return;
+            const status = normalizeProductStatus(currentProduct);
+            if (status === 'outofstock') {
+                btn.disabled = true;
+                btn.innerHTML = 'Нет в наличии';
+                return;
+            }
+            if (status === 'soon') {
+                btn.disabled = true;
+                btn.innerHTML = 'Скоро будет';
+                return;
+            }
+            if (selectedFlavor) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-shopping-cart mr-2"></i>Добавить в корзину (${currentDetailQty} шт.)`;
+            } else {
+                btn.disabled = true;
+                btn.innerHTML = 'Выберите вкус';
+            }
+        }
+
+        function addSelectedToCart() {
+            if (!currentProduct || !selectedFlavor) return;
+            const status = normalizeProductStatus(currentProduct);
+            if (status !== 'instock') return;
+            const existingItem = cart.find(item => item.id === currentProduct.id && item.flavor === selectedFlavor.name);
+            if (existingItem) {
+                existingItem.qty = Math.min(existingItem.qty + currentDetailQty, selectedFlavor.stock);
+            } else {
+                cart.push({
+                    id: currentProduct.id,
+                    name: currentProduct.name,
+                    price: currentProduct.price,
+                    costPrice: Number(currentProduct.costPrice) || 0,
+                    flavor: selectedFlavor.name,
+                    qty: currentDetailQty
+                });
+            }
+            localStorage.setItem('waka_cart', JSON.stringify(cart));
+            updateCartCount();
+            closeDetailsForce();
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function closeDetailsForce() {
+            document.getElementById('details-sheet').classList.remove('active');
+            setTimeout(() => document.getElementById('details-back').classList.add('hidden'), 300);
+        }
+
+        function closeDetails(event) {
+            if (event.target === document.getElementById('details-back')) closeDetailsForce();
+        }
+
+        function updateCartCount() {
+            const badge = document.getElementById('cart-count');
+            const totalItems = cart.reduce((sum, i) => sum + i.qty, 0);
+            badge.innerText = totalItems;
+            badge.classList.toggle('hidden', totalItems === 0);
+        }
+
+        function toggleCart() {
+            const modal = document.getElementById('cart-modal');
+            if (modal.classList.contains('hidden')) {
+                const container = document.getElementById('cart-items');
+                container.innerHTML = cart.length ? '' : '<p class="text-center text-gray-500 py-12 text-sm">Корзина пуста</p>';
+                let total = 0;
+                cart.forEach((item, idx) => {
+                    const itemCost = item.price * item.qty;
+                    total += itemCost;
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center bg-[#1a2232] p-3 rounded-2xl border border-gray-800">
+                            <div>
+                                <span class="text-sm font-bold block">${escapeHtml(item.name)}</span>
+                                <span class="text-xs text-purple-400">Вкус: ${escapeHtml(item.flavor)} (${item.qty} шт.)</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-black text-purple-400">${itemCost} с.</span>
+                                <button onclick="removeFromCart(${idx})" class="text-red-400 text-xl font-bold px-2">&times;</button>
+                            </div>
+                        </div>`;
+                });
+                document.getElementById('cart-total').innerText = total;
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function removeFromCart(idx) {
+            cart.splice(idx, 1);
+            localStorage.setItem('waka_cart', JSON.stringify(cart));
+            updateCartCount();
+            toggleCart();
+            toggleCart();
+        }
+
+        function openOrderCheckout() {
+            if (!cart.length) return;
+            document.getElementById('cart-modal').classList.add('hidden');
+
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            let discount = getActiveBonusBalance();
+            if (discount > subtotal) discount = subtotal;
+            const finalTotal = subtotal - discount;
+
+            document.getElementById('summary-subtotal').innerText = subtotal;
+            document.getElementById('summary-discount').innerText = discount;
+            document.getElementById('summary-total').innerText = finalTotal;
+
+            const now = new Date();
+            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            document.getElementById('checkout-date-box').innerText = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} г.`;
+
+            let hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            document.getElementById('checkout-time-box').innerText = `${hours}:${minutes} ${ampm}`;
+
+            document.getElementById('checkout-back').classList.remove('hidden');
+            setTimeout(() => document.getElementById('checkout-sheet').classList.add('active'), 10);
+        }
+
+        function closeCheckoutForce() {
+            document.getElementById('checkout-sheet').classList.remove('active');
+            setTimeout(() => document.getElementById('checkout-back').classList.add('hidden'), 300);
+        }
+
+        function closeCheckout(event) {
+            if (event.target === document.getElementById('checkout-back')) closeCheckoutForce();
+        }
+
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        const prizes = [
+            { text: '50 сом', value: 50, color: '#1d1b3a', weight: 65 },
+            { text: '100 сом', value: 100, color: '#2d1f4d', weight: 20 },
+            { text: '300 сом', value: 300, color: '#422375', weight: 10 },
+            { text: '500 сом', value: 500, color: '#581c87', weight: 5 }
+        ];
+        const numSectors = prizes.length;
+        const arcSize = (2 * Math.PI) / numSectors;
+        let isSpinning = false;
+        let timerInterval = null;
+
+        function drawWheel() {
+            if (!canvas || !ctx) return;
+            const size = canvas.width;
+            const center = size / 2;
+            ctx.clearRect(0, 0, size, size);
+            for (let i = 0; i < numSectors; i++) {
+                const angle = i * arcSize;
+                ctx.fillStyle = prizes[i].color;
+                ctx.beginPath();
+                ctx.moveTo(center, center);
+                ctx.arc(center, center, center - 5, angle, angle + arcSize);
+                ctx.lineTo(center, center);
+                ctx.fill();
+                ctx.strokeStyle = '#272d3d';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px sans-serif';
+                ctx.translate(center, center);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = 'right';
+                ctx.fillText(prizes[i].text, center - 30, 5);
+                ctx.restore();
+            }
+        }
+
+        function getWeightedPrizeIndex() {
+            const totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < prizes.length; i++) {
+                if (random < prizes[i].weight) return i;
+                random -= prizes[i].weight;
+            }
+            return 0;
+        }
+
+        function checkWheelTimer() {
+            const lastSpin = localStorage.getItem('waka_last_spin');
+            const btn = document.getElementById('spin-btn');
+            if (lastSpin) {
+                const passed = Date.now() - parseInt(lastSpin);
+                const dayMs = 24 * 60 * 60 * 1000;
+                if (passed < dayMs) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50');
+                    if (timerInterval) clearInterval(timerInterval);
+                    timerInterval = setInterval(() => {
+                        const remaining = dayMs - (Date.now() - parseInt(lastSpin));
+                        if (remaining <= 0) {
+                            clearInterval(timerInterval);
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-50');
+                            btn.innerText = '⚡ Крутить!';
+                        } else {
+                            const h = Math.floor(remaining / (1000 * 60 * 60));
+                            const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((remaining % (1000 * 60)) / 1000);
+                            btn.innerText = `Доступно через ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                        }
+                    }, 1000);
+                    return false;
+                }
+            }
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            btn.innerText = '⚡ Крутить!';
+            return true;
+        }
+
+        function spinWheel() {
+            if (!canvas || !ctx) return;
+            if (isSpinning || !checkWheelTimer()) return;
+            isSpinning = true;
+            const btn = document.getElementById('spin-btn');
+            btn.innerText = '⏳ Колесо крутится...';
+            const winIndex = getWeightedPrizeIndex();
+            const degreesPerSector = 360 / numSectors;
+            const targetAngle = 360 - (winIndex * degreesPerSector) - (degreesPerSector / 2);
+            const stopAngle = (5 * 360) + targetAngle - 90;
+            canvas.style.transition = 'transform 5s ease-out';
+            canvas.style.transform = `rotate(${stopAngle}deg)`;
+            setTimeout(() => {
+                isSpinning = false;
+                const finalPrize = prizes[winIndex];
+                addWheelBonus(finalPrize.value);
+                localStorage.setItem('waka_last_spin', Date.now().toString());
+                alert(`🎉 Супер! Вы выиграли ${finalPrize.text}! Бонусы действуют 24 часа.`);
+                canvas.style.transition = 'none';
+                canvas.style.transform = `rotate(${stopAngle % 360}deg)`;
+                setTimeout(() => { canvas.style.transition = 'transform 5s ease-out'; }, 50);
+                checkWheelTimer();
+            }, 5000);
+        }
+
+        async function initApp() {
+            if (localStorage.getItem('terms-accepted') === 'true') {
+                document.getElementById('terms-modal').style.display = 'none';
+            }
+
+            products = await loadProductsFromBot();
+            if (!Array.isArray(products) || products.length === 0) {
+                products = getDefaultProducts();
+            }
+            products.forEach(product => {
+                normalizeProductPrices(product);
+                product.status = normalizeProductStatus(product);
+            });
+            renderCurrentUserProfile();
+
+            initBonusSystem();
+            updateProfileStats();
+
+            updateAdminUI();
+            drawWheel();
+            renderProducts();
+            updateCartCount();
+            checkWheelTimer();
+        }
+
+        window.openAdminPanel = openAdminPanel;
+        window.closeAdminPanel = closeAdminPanel;
+
+        bindAdminEvents();
+        document.getElementById('catalog-filters')?.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-catalog-filter]');
+            if (!button) return;
+            currentCatalogFilter = button.dataset.catalogFilter;
+            renderProducts();
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        });
+
+        products = getDefaultProducts();
+        let appBooted = false;
+
+        async function bootApp() {
+            if (appBooted) return;
+            appBooted = true;
+            await initApp();
+            updateAdminUI();
+            setTimeout(updateAdminUI, 200);
+            setTimeout(updateAdminUI, 800);
+            setTimeout(updateAdminUI, 2000);
+        }
+
+        function showCatalogFallback() {
+            if (!Array.isArray(products) || products.length === 0) {
+                products = getDefaultProducts();
+            }
+            renderProducts();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', showCatalogFallback);
+        } else {
+            showCatalogFallback();
+        }
+
+        if (typeof tg.ready === 'function') tg.ready();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootApp, { once: true });
+        } else {
+            bootApp();
+        }
+    </script>
+</body>
+</html>

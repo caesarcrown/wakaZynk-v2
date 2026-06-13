@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WAKA ENERGY</title>
+    <title>WAKA ZYNK</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -313,9 +313,9 @@
 
     <header class="p-4 flex items-center justify-between border-b border-gray-900 bg-[#0f131c] sticky top-0 z-30">
         <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center font-bold text-sm tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.4)]">WAKA</div>
+            <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center font-bold text-sm tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.4)]">WZ</div>
             <div>
-                <h1 class="font-bold text-base tracking-wide">WAKA ENERGY</h1>
+                <h1 class="font-bold text-base tracking-wide">WAKA ZYNK</h1>
                 <p class="text-xs text-gray-400">мини-приложение</p>
             </div>
         </div>
@@ -446,7 +446,7 @@
         <div class="relative w-76 h-76 mx-auto my-4 flex items-center justify-center">
             <div class="absolute top-0 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[25px] border-t-purple-500 z-30 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.5)]"></div>
             <canvas id="wheelCanvas" width="290" height="290" class="rounded-full shadow-[0_0_30px_rgba(168,85,247,0.25)] border-4 border-[#171e2c] transition-transform duration-5000 ease-out"></canvas>
-            <div class="absolute w-14 h-14 bg-[#0b0e14] border-2 border-purple-500 rounded-full text-white font-black flex items-center justify-center text-[10px]">WAKA</div>
+            <div class="absolute w-14 h-14 bg-[#0b0e14] border-2 border-purple-500 rounded-full text-white font-black flex items-center justify-center text-[10px]">ZYNK</div>
         </div>
         <button onclick="spinWheel()" id="spin-btn" class="w-full max-w-sm bg-gradient-to-r from-purple-600 to-indigo-600 font-bold py-4 rounded-2xl shadow-[0_4px_15px_rgba(168,85,247,0.3)] disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all cursor-pointer">
             ⚡ Крутить!
@@ -575,7 +575,7 @@
     <div id="admin-panel">
         <div class="p-4 max-w-xl mx-auto pb-10">
             <div class="flex items-center justify-between mb-5 pt-1">
-                <div><p class="text-xs text-purple-400 font-bold uppercase tracking-widest">WAKA ENERGY</p><h2 class="text-2xl font-black mt-1">Админ-панель</h2></div>
+                <div><p class="text-xs text-purple-400 font-bold uppercase tracking-widest">WAKA ZYNK</p><h2 class="text-2xl font-black mt-1">Админ-панель</h2></div>
                 <button id="btn-admin-close" class="w-10 h-10 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white text-xl">&times;</button>
             </div>
             <div id="admin-stats" class="grid grid-cols-2 gap-3 mb-5"></div>
@@ -663,7 +663,7 @@
         }
 
         function getPendingBonusesKey() {
-            const userId = getTelegramUserId();
+            const userId = getTelegramUserId() || getCurrentProfileUser().id;
             return userId ? `waka_pending_bonuses_${userId}` : 'waka_pending_bonuses';
         }
 
@@ -905,8 +905,59 @@
             return null;
         }
 
+        function getCurrentProfileUser() {
+            let initDataUser = null;
+            const initData = tg?.initData || '';
+            if (initData) {
+                try {
+                    const userRaw = new URLSearchParams(initData).get('user');
+                    if (userRaw) initDataUser = JSON.parse(userRaw);
+                } catch (e) {}
+            }
+
+            const telegramUser = tg?.initDataUnsafe?.user || initDataUser;
+            const linkUser = decodeBase64Json(new URLSearchParams(window.location.search).get('user')) || {};
+            return {
+                id: telegramUser?.id ?? linkUser.id ?? null,
+                first_name: telegramUser?.first_name || linkUser.first_name || 'Пользователь',
+                last_name: telegramUser?.last_name || '',
+                username: telegramUser?.username || (
+                    linkUser.username && linkUser.username !== 'None' ? linkUser.username : ''
+                ),
+                photo_url: telegramUser?.photo_url || ''
+            };
+        }
+
+        function renderCurrentUserProfile() {
+            const user = getCurrentProfileUser();
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+            const nameEl = document.getElementById('user-name');
+            const idEl = document.getElementById('user-id');
+            const usernameEl = document.getElementById('user-username');
+            const avatarEl = document.getElementById('user-avatar');
+
+            if (nameEl) nameEl.innerText = fullName || 'Пользователь';
+            if (idEl) idEl.innerText = user.id ? `Telegram ID: ${user.id}` : 'Telegram ID не определён';
+            if (usernameEl) usernameEl.innerText = user.username ? `@${user.username}` : 'Telegram пользователь';
+            if (!avatarEl) return;
+
+            avatarEl.innerHTML = '';
+            if (user.photo_url) {
+                const image = document.createElement('img');
+                image.src = user.photo_url;
+                image.alt = `Аватар ${fullName}`;
+                image.className = 'w-full h-full object-cover';
+                image.onerror = () => {
+                    avatarEl.innerHTML = `<span class="text-lg font-black">${escapeHtml((user.first_name || 'П').slice(0, 1).toUpperCase())}</span>`;
+                };
+                avatarEl.appendChild(image);
+            } else {
+                avatarEl.innerHTML = `<span class="text-lg font-black">${escapeHtml((user.first_name || 'П').slice(0, 1).toUpperCase())}</span>`;
+            }
+        }
+
         function getOrdersStorageKey() {
-            return `waka_orders_${getTelegramUserId() || 'guest'}`;
+            return `waka_orders_${getTelegramUserId() || getCurrentProfileUser().id || 'guest'}`;
         }
 
         function getStoredOrders() {
@@ -932,7 +983,7 @@
                 phone,
                 address,
                 total: parseInt(total, 10) || 0,
-                userId: getTelegramUserId() || 'guest',
+                userId: getTelegramUserId() || getCurrentProfileUser().id || 'guest',
                 userName: document.getElementById('user-name')?.innerText || 'Пользователь',
                 items: cart.map(item => ({
                     name: item.name,
@@ -1009,20 +1060,36 @@
         }
 
         function getReferralLink() {
-            const userId = getTelegramUserId() || 'guest';
-            return `${window.location.origin}${window.location.pathname}?ref=${encodeURIComponent(userId)}`;
+            const userId = getTelegramUserId() || getCurrentProfileUser().id;
+            const botUsername = new URLSearchParams(window.location.search).get('bot_username');
+            if (!botUsername || !userId) return '';
+            return `https://t.me/${botUsername}?start=ref_${encodeURIComponent(userId)}`;
+        }
+
+        function loadReferralStatsFromBot() {
+            const data = decodeBase64Json(new URLSearchParams(window.location.search).get('referrals'));
+            return {
+                invited: parseInt(data?.invited, 10) || 0,
+                earned: parseInt(data?.earned, 10) || 0
+            };
         }
 
         function openReferralPage() {
+            const referralLink = getReferralLink();
             const link = document.getElementById('referral-link');
-            if (link) link.value = getReferralLink();
-            document.getElementById('referral-invited').innerText = localStorage.getItem('waka_referral_invited') || '0';
-            document.getElementById('referral-earned').innerText = localStorage.getItem('waka_referral_earned') || '0';
+            if (link) link.value = referralLink || 'Перезапустите бота командой /start';
+            const stats = loadReferralStatsFromBot();
+            document.getElementById('referral-invited').innerText = stats.invited;
+            document.getElementById('referral-earned').innerText = stats.earned;
             openAppPage('referral-page');
         }
 
         async function copyReferralLink() {
             const link = getReferralLink();
+            if (!link) {
+                alert('Перезапустите бота командой /start, чтобы получить реферальную ссылку.');
+                return;
+            }
             try {
                 await navigator.clipboard.writeText(link);
                 if (tg.showPopup) tg.showPopup({ message: 'Ссылка скопирована' });
@@ -1033,8 +1100,13 @@
         }
 
         function shareReferralLink() {
-            const text = 'Присоединяйся к WAKA ENERGY!';
-            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(getReferralLink())}&text=${encodeURIComponent(text)}`;
+            const referralLink = getReferralLink();
+            if (!referralLink) {
+                alert('Перезапустите бота командой /start, чтобы получить реферальную ссылку.');
+                return;
+            }
+            const text = 'Присоединяйся к WAKA ZYNK!';
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
             if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink(shareUrl);
             else window.open(shareUrl, '_blank');
         }
@@ -1885,15 +1957,7 @@
                 normalizeProductPrices(product);
                 product.status = normalizeProductStatus(product);
             });
-            if (tg.initDataUnsafe?.user) {
-                const user = tg.initDataUnsafe.user;
-                document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-                document.getElementById('user-id').innerText = 'Telegram ID: ' + user.id;
-                document.getElementById('user-username').innerText = user.username ? '@' + user.username : 'Telegram пользователь';
-                if (user.photo_url) {
-                    document.getElementById('user-avatar').innerHTML = `<img src="${escapeHtml(user.photo_url)}" alt="Аватар" class="w-full h-full object-cover">`;
-                }
-            }
+            renderCurrentUserProfile();
 
             initBonusSystem();
             updateProfileStats();

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://104-207-76-133.nip.io" crossorigin>
     <link rel="preconnect" href="https://telegram.org" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="stylesheet" href="./waka-tailwind.css?v=9">
+    <link rel="stylesheet" href="./waka-tailwind.css?v=11">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -319,7 +319,7 @@
             <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center font-bold text-sm tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.4)]">WZ</div>
             <div>
                 <h1 class="font-bold text-base tracking-wide">WAKA ZYNK</h1>
-                <p class="text-xs text-gray-400">мини-приложение · v9</p>
+                <p class="text-xs text-gray-400">мини-приложение · v11</p>
             </div>
         </div>
         <button onclick="toggleCart()" class="relative w-10 h-10 rounded-xl bg-[#171e2c] flex items-center justify-center text-gray-300 active:scale-95 transition-transform cursor-pointer">
@@ -587,6 +587,9 @@
                 <button class="admin-tab" data-admin-tab="stats">Статистика</button>
                 <button class="admin-tab" data-admin-tab="products">Товары</button>
                 <button class="admin-tab" data-admin-tab="users">Юзеры</button>
+                <button class="admin-tab" data-admin-tab="broadcast">Рассылка</button>
+                <button class="admin-tab" data-admin-tab="contest">Конкурс</button>
+                <button class="admin-tab" data-admin-tab="payment">Оплата</button>
             </div>
             <div id="admin-content"></div>
         </div>
@@ -639,6 +642,19 @@
         let adminOrders = [];
         let adminUsers = [];
         let adminStatsData = {};
+        let adminLowStock = [];
+        let adminAudit = [];
+        let adminBroadcasts = [];
+        let adminContests = [];
+        let adminActiveContest = null;
+        let adminBroadcastText = '';
+        let adminContestTitle = 'Реферальный конкурс';
+        let adminOrderMessageTemplate = '';
+        let adminDefaultOrderMessageTemplate = '';
+        let adminOrderQrUrl = '';
+        let adminUserSearch = '';
+        let selectedAdminUserId = null;
+        let broadcastPollTimer = null;
         let catalogLoading = true;
 
         async function apiRequest(path, options = {}) {
@@ -1126,6 +1142,10 @@
                 if (data.user) {
                     renderCurrentUserProfile(data.user);
                 }
+                if (Array.isArray(data.bonuses)) {
+                    serverBonusEntries = data.bonuses;
+                    refreshBonusUI();
+                }
             } catch (e) {
                 count.innerText = getStoredOrders().length;
             }
@@ -1224,10 +1244,33 @@
                 adminOrders = data.orders || [];
                 adminUsers = data.users || [];
                 adminStatsData = data.stats || {};
+                adminLowStock = data.lowStock || [];
+                adminAudit = data.audit || [];
             } catch (e) {
                 alert('Не удалось загрузить админку: ' + e.message);
             }
+            await loadAdminExtendedData();
             renderAdminPanel();
+        }
+
+        async function loadAdminExtendedData() {
+            const [broadcastResult, contestResult, settingsResult] = await Promise.allSettled([
+                apiRequest('/admin/broadcasts'),
+                apiRequest('/admin/contests'),
+                apiRequest('/admin/order-settings')
+            ]);
+            if (broadcastResult.status === 'fulfilled') {
+                adminBroadcasts = broadcastResult.value.broadcasts || [];
+            }
+            if (contestResult.status === 'fulfilled') {
+                adminContests = contestResult.value.contests || [];
+                adminActiveContest = contestResult.value.active || null;
+            }
+            if (settingsResult.status === 'fulfilled') {
+                adminOrderMessageTemplate = settingsResult.value.messageTemplate || '';
+                adminDefaultOrderMessageTemplate = settingsResult.value.defaultTemplate || '';
+                adminOrderQrUrl = settingsResult.value.qrUrl || '';
+            }
         }
 
         async function saveAdminChanges() {
@@ -1242,6 +1285,13 @@
                     body: JSON.stringify({ products })
                 });
                 cacheCatalog(products);
+                adminLowStock = products.flatMap(product => (product.flavors || [])
+                    .filter(flavor => (Number(flavor.stock) || 0) <= 2)
+                    .map(flavor => ({
+                        product: product.name,
+                        flavor: flavor.name,
+                        stock: Number(flavor.stock) || 0
+                    })));
                 alert('Каталог сохранён. Изменения уже доступны всем пользователям.');
             } catch (e) {
                 alert('Ошибка отправки: ' + e.message);
@@ -1251,6 +1301,10 @@
         function closeAdminPanel() {
             document.getElementById('admin-panel')?.classList.remove('admin-open');
             document.body.style.overflow = '';
+            if (broadcastPollTimer) {
+                clearTimeout(broadcastPollTimer);
+                broadcastPollTimer = null;
+            }
         }
 
         function renderAdminStats() {
@@ -1325,11 +1379,31 @@
             const orders = adminOrders;
             const revenue = adminStatsData.revenue || 0;
             const average = orders.length ? Math.round(revenue / orders.length) : 0;
+            const actionLabels = {
+                catalog_updated: 'Каталог обновлён',
+                order_status_changed: 'Статус заказа изменён',
+                product_image_uploaded: 'Загружено фото товара',
+                broadcast_test: 'Тест рассылки',
+                broadcast_started: 'Запущена рассылка',
+                contest_started: 'Запущен конкурс',
+                contest_finished: 'Конкурс завершён',
+                bonus_adjusted: 'Изменён бонусный баланс',
+                order_message_updated: 'Изменён текст после заказа',
+                order_qr_updated: 'Изменён QR оплаты',
+                order_settings_test: 'Отправлен тест оплаты'
+            };
+            const auditHtml = adminAudit.length ? adminAudit.slice(0, 15).map(item => `
+                <div class="py-3 border-b border-gray-900 last:border-0">
+                    <div class="flex justify-between gap-3"><b class="text-xs">${escapeHtml(actionLabels[item.action] || item.action)}</b><span class="text-[10px] text-gray-600">${formatOrderDate(Number(item.created_at) * 1000)}</span></div>
+                    <p class="text-[11px] text-gray-500 mt-1">${escapeHtml(item.details || '')}</p>
+                    <p class="text-[10px] text-gray-700 mt-1">Администратор: ${item.admin_id}</p>
+                </div>`).join('') : '<p class="text-xs text-gray-600">Действий пока нет</p>';
             content.innerHTML = `
                 <div class="space-y-3">
                     <div class="order-card"><p class="text-xs text-gray-500">Общая выручка</p><p class="text-3xl font-black mt-2">${revenue} <small class="text-sm text-gray-500">сом</small></p></div>
                     <div class="order-card"><p class="text-xs text-gray-500">Средний чек</p><p class="text-3xl font-black mt-2">${average} <small class="text-sm text-gray-500">сом</small></p></div>
                     <div class="order-card"><p class="text-xs text-gray-500 mb-3">Статусы заказов</p>${['processing', 'confirmed', 'delivery', 'completed'].map(value => { const meta = getOrderStatusMeta(value); const count = orders.filter(order => order.status === value).length; return `<div class="flex justify-between py-2 border-b border-gray-900 last:border-0"><span class="text-sm ${meta.className.split(' ')[0]}">${meta.label}</span><b>${count}</b></div>`; }).join('')}</div>
+                    <div class="order-card"><div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-clock-rotate-left text-purple-400"></i><p class="font-bold">Журнал действий</p></div>${auditHtml}</div>
                 </div>`;
         }
 
@@ -1347,12 +1421,378 @@
                     spent: adminOrders.filter(item => String(item.userId) === String(order.userId)).reduce((sum, item) => sum + (Number(item.total) || 0), 0)
                 }
             ])).values()];
-            content.innerHTML = users.length ? users.map(user => `
-                <div class="order-card flex items-center gap-3 mb-3">
+            if (selectedAdminUserId) {
+                const user = users.find(item => String(item.telegram_id) === String(selectedAdminUserId));
+                if (!user) {
+                    selectedAdminUserId = null;
+                    renderAdminUsers();
+                    return;
+                }
+                const userOrders = adminOrders.filter(order => String(order.userId) === String(user.telegram_id));
+                const username = user.username && user.username !== 'None' ? user.username : '';
+                content.innerHTML = `
+                    <button data-action="user-back" class="text-sm text-purple-400 font-bold mb-4"><i class="fa-solid fa-arrow-left mr-2"></i>Все клиенты</button>
+                    <div class="order-card">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center overflow-hidden">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xl"></i>'}</div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-lg font-black truncate">${escapeHtml([user.first_name, user.last_name].filter(Boolean).join(' ') || 'Пользователь')}</p>
+                                <p class="text-xs text-gray-500 mt-1">Telegram ID: ${user.telegram_id}</p>
+                                ${username ? `<a href="https://t.me/${encodeURIComponent(username)}" target="_blank" class="text-sm text-blue-400 mt-1 inline-block">@${escapeHtml(username)}</a>` : '<p class="text-xs text-gray-600 mt-1">Username не установлен</p>'}
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-5">
+                            <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-[10px] text-gray-600">Заказы</p><b>${user.orders_count || 0}</b></div>
+                            <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-[10px] text-gray-600">Покупки</p><b>${user.spent || 0} сом</b></div>
+                            <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-[10px] text-gray-600">Приглашено</p><b>${user.referral_invited || 0}</b></div>
+                            <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-[10px] text-gray-600">Активные бонусы</p><b>${user.active_bonus || 0} сом</b></div>
+                        </div>
+                        <div class="mt-5 border-t border-gray-800 pt-4">
+                            <p class="text-xs font-bold mb-2">Изменить бонусный баланс</p>
+                            <div class="flex gap-2">
+                                <input id="admin-bonus-amount" type="number" min="1" value="25" class="min-w-0 flex-1 bg-[#0b0e14] border border-gray-800 rounded-xl px-3 py-2 text-sm outline-none">
+                                <button data-action="bonus-add" data-user-id="${user.telegram_id}" class="bg-emerald-600 px-3 rounded-xl font-bold text-sm">+</button>
+                                <button data-action="bonus-subtract" data-user-id="${user.telegram_id}" class="bg-red-600 px-3 rounded-xl font-bold text-sm">−</button>
+                            </div>
+                            <p class="text-[10px] text-gray-600 mt-2">Начисленные бонусы действуют 24 часа.</p>
+                        </div>
+                    </div>
+                    <h3 class="font-bold mt-5 mb-3">Последние заказы</h3>
+                    ${userOrders.length ? userOrders.slice(0, 10).map(order => `<div class="order-card mb-2 flex justify-between gap-3"><div><b class="text-sm">${escapeHtml(order.code)}</b><p class="text-[10px] text-gray-600 mt-1">${formatOrderDate(order.createdAt)}</p></div><b>${order.total} сом</b></div>`).join('') : '<div class="empty-state">Заказов пока нет</div>'}`;
+                return;
+            }
+
+            const query = adminUserSearch.trim().toLowerCase();
+            const filteredUsers = query ? users.filter(user =>
+                String(user.telegram_id).includes(query)
+                || String(user.first_name || '').toLowerCase().includes(query)
+                || String(user.username || '').toLowerCase().includes(query)
+            ) : users;
+            content.innerHTML = `
+                <input id="admin-user-search" value="${escapeHtml(adminUserSearch)}" placeholder="Имя, username или Telegram ID" class="w-full bg-[#121824] border border-gray-800 rounded-2xl py-3.5 px-4 text-sm outline-none focus:border-purple-500 mb-4">
+                ${filteredUsers.length ? filteredUsers.map(user => `
+                <button data-action="user-details" data-user-id="${user.telegram_id}" class="order-card w-full flex items-center gap-3 mb-3 text-left">
                     <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center overflow-hidden">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user"></i>'}</div>
-                    <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml([user.first_name, user.last_name].filter(Boolean).join(' '))}</p><p class="text-[11px] text-gray-500">ID: ${user.telegram_id}${user.username ? ` · @${escapeHtml(user.username)}` : ''}</p><p class="text-[10px] text-gray-600 mt-1">${user.spent || 0} сом покупок</p></div>
+                    <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml([user.first_name, user.last_name].filter(Boolean).join(' ') || 'Пользователь')}</p><p class="text-[11px] text-gray-500">ID: ${user.telegram_id}${user.username && user.username !== 'None' ? ` · @${escapeHtml(user.username)}` : ''}</p><p class="text-[10px] text-gray-600 mt-1">${user.spent || 0} сом · ${user.referral_invited || 0} приглашено</p></div>
                     <div class="text-right"><p class="font-black">${user.orders_count || 0}</p><p class="text-[10px] text-gray-600">заказов</p></div>
-                </div>`).join('') : '<div class="empty-state">Клиентов пока нет</div>';
+                </button>`).join('') : '<div class="empty-state">Клиенты не найдены</div>'}`;
+        }
+
+        async function adjustAdminUserBonus(userId, direction) {
+            const amountInput = document.getElementById('admin-bonus-amount');
+            const amount = Math.max(1, parseInt(amountInput?.value, 10) || 0) * direction;
+            try {
+                const data = await apiRequest('/admin/users/bonus', {
+                    method: 'POST',
+                    body: JSON.stringify({ user_id: Number(userId), amount })
+                });
+                const user = adminUsers.find(item => String(item.telegram_id) === String(userId));
+                if (user) user.active_bonus = data.balance;
+                renderAdminUsers();
+                alert(`Баланс обновлён: ${data.balance} сом.`);
+            } catch (error) {
+                alert('Не удалось изменить баланс: ' + error.message);
+            }
+        }
+
+        function renderAdminBroadcast() {
+            const content = document.getElementById('admin-content');
+            const running = adminBroadcasts.find(item => item.status === 'queued' || item.status === 'running');
+            const statusLabels = {
+                queued: 'В очереди',
+                running: 'Отправляется',
+                completed: 'Завершена',
+                failed: 'Ошибка'
+            };
+            const history = adminBroadcasts.length ? adminBroadcasts.map(item => `
+                <div class="order-card mb-3">
+                    <div class="flex justify-between gap-3">
+                        <b class="text-sm">${statusLabels[item.status] || item.status}</b>
+                        <span class="text-[10px] text-gray-600">${formatOrderDate(Number(item.created_at) * 1000)}</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-3 whitespace-pre-wrap">${escapeHtml(item.message)}</p>
+                    <div class="grid grid-cols-4 gap-2 mt-4 text-center">
+                        <div class="bg-[#0b0e14] rounded-lg p-2"><b>${item.total || 0}</b><p class="text-[9px] text-gray-600">всего</p></div>
+                        <div class="bg-[#0b0e14] rounded-lg p-2"><b class="text-emerald-400">${item.sent || 0}</b><p class="text-[9px] text-gray-600">доставлено</p></div>
+                        <div class="bg-[#0b0e14] rounded-lg p-2"><b class="text-amber-400">${item.blocked || 0}</b><p class="text-[9px] text-gray-600">заблокировали</p></div>
+                        <div class="bg-[#0b0e14] rounded-lg p-2"><b class="text-red-400">${item.failed || 0}</b><p class="text-[9px] text-gray-600">ошибки</p></div>
+                    </div>
+                </div>`).join('') : '<div class="empty-state">Рассылок пока не было</div>';
+            content.innerHTML = `
+                <div class="order-card mb-4">
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-paper-plane text-purple-400"></i><h3 class="font-black">Новое сообщение</h3></div>
+                    <textarea id="admin-broadcast-message" maxlength="4000" rows="7" placeholder="Напишите сообщение для пользователей..." class="w-full bg-[#0b0e14] border border-gray-800 rounded-2xl p-4 text-sm outline-none focus:border-purple-500 mt-4 resize-none">${escapeHtml(adminBroadcastText)}</textarea>
+                    <div class="flex justify-between mt-2"><span class="text-[10px] text-gray-600">Сначала отправьте тест администраторам</span><span id="broadcast-char-count" class="text-[10px] text-gray-600">${adminBroadcastText.length}/4000</span></div>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button data-action="broadcast-test" class="bg-[#1b2332] py-3 rounded-xl text-sm font-bold">Тест админам</button>
+                        <button data-action="broadcast-send" ${running ? 'disabled' : ''} class="bg-purple-600 disabled:bg-gray-700 py-3 rounded-xl text-sm font-bold">${running ? 'Рассылка идёт...' : 'Отправить всем'}</button>
+                    </div>
+                </div>
+                <h3 class="font-bold mb-3">История рассылок</h3>
+                ${history}`;
+            scheduleBroadcastRefresh(Boolean(running));
+        }
+
+        async function refreshBroadcasts() {
+            try {
+                const data = await apiRequest('/admin/broadcasts');
+                adminBroadcasts = data.broadcasts || [];
+                if (currentAdminTab === 'broadcast' && isAdminPanelOpen()) renderAdminBroadcast();
+            } catch (error) {
+                console.warn('Не удалось обновить статус рассылки:', error.message);
+            }
+        }
+
+        function scheduleBroadcastRefresh(active) {
+            if (broadcastPollTimer) clearTimeout(broadcastPollTimer);
+            broadcastPollTimer = null;
+            if (active && currentAdminTab === 'broadcast' && isAdminPanelOpen()) {
+                broadcastPollTimer = setTimeout(refreshBroadcasts, 1800);
+            }
+        }
+
+        async function sendAdminBroadcast(testOnly) {
+            const message = adminBroadcastText.trim();
+            if (!message) {
+                alert('Сначала напишите сообщение.');
+                return;
+            }
+            if (!testOnly && !confirm('Отправить это сообщение всем пользователям бота? Отменить начатую рассылку будет нельзя.')) return;
+            try {
+                if (testOnly) {
+                    const data = await apiRequest('/admin/broadcast/test', {
+                        method: 'POST',
+                        body: JSON.stringify({ message })
+                    });
+                    alert(`Тест отправлен администраторам: ${data.delivered}.`);
+                } else {
+                    const data = await apiRequest('/admin/broadcasts', {
+                        method: 'POST',
+                        body: JSON.stringify({ message })
+                    });
+                    alert(`Рассылка запущена. Получателей: ${data.total}.`);
+                    await refreshBroadcasts();
+                }
+            } catch (error) {
+                alert('Не удалось запустить рассылку: ' + error.message);
+            }
+        }
+
+        function telegramAccountLink(user) {
+            if (user.username) {
+                return `<a href="https://t.me/${encodeURIComponent(user.username)}" target="_blank" class="text-blue-400">@${escapeHtml(user.username)}</a>`;
+            }
+            return `<span class="text-gray-500">ID: ${user.telegramId}</span>`;
+        }
+
+        function renderContestRanking(ranking, limit = 100) {
+            if (!ranking?.length) return '<div class="empty-state">Приглашений пока нет</div>';
+            return ranking.slice(0, limit).map((user, index) => `
+                <div class="flex items-center gap-3 py-3 border-b border-gray-900 last:border-0">
+                    <div class="w-9 h-9 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black">${index + 1}</div>
+                    <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml(user.firstName || 'Пользователь')}</p><p class="text-[11px] mt-1">${telegramAccountLink(user)} · ${user.telegramId}</p></div>
+                    <div class="text-right"><b class="text-lg">${user.invited}</b><p class="text-[9px] text-gray-600">друзей</p></div>
+                </div>`).join('');
+        }
+
+        function renderAdminContest() {
+            const content = document.getElementById('admin-content');
+            const active = adminActiveContest;
+            const activeHtml = active ? `
+                <div class="order-card border border-purple-500/30 mb-4">
+                    <div class="flex justify-between gap-3"><div><p class="text-[10px] text-emerald-400 font-bold uppercase">Конкурс активен</p><h3 class="text-lg font-black mt-1">${escapeHtml(active.title)}</h3></div><i class="fa-solid fa-trophy text-2xl text-amber-400"></i></div>
+                    <p class="text-xs text-gray-500 mt-3">Начат: ${formatOrderDate(Number(active.started_at) * 1000)}</p>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-[10px] text-gray-600">Участников</p><b class="text-xl">${active.participants || 0}</b></div>
+                        <div class="bg-[#0b0e14] rounded-xl p-3"><p class="text-[10px] text-gray-600">Приглашений</p><b class="text-xl">${active.invites || 0}</b></div>
+                    </div>
+                    <button data-action="contest-finish" data-contest-id="${active.id}" class="w-full bg-red-600/90 py-3 rounded-xl font-bold text-sm mt-4">Завершить и выбрать топ-3</button>
+                </div>
+                <div class="order-card mb-4"><h3 class="font-bold mb-2">Текущий рейтинг</h3>${renderContestRanking(active.ranking)}</div>` : `
+                <div class="order-card mb-4">
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-trophy text-amber-400"></i><h3 class="font-black">Новый конкурс</h3></div>
+                    <input id="admin-contest-title" maxlength="120" value="${escapeHtml(adminContestTitle)}" class="w-full bg-[#0b0e14] border border-gray-800 rounded-xl px-4 py-3 text-sm outline-none mt-4" placeholder="Название конкурса">
+                    <p class="text-[10px] text-gray-600 mt-2">Будут учитываться только новые приглашения после запуска конкурса.</p>
+                    <button data-action="contest-start" class="w-full bg-purple-600 py-3 rounded-xl font-bold text-sm mt-4">Запустить конкурс</button>
+                </div>`;
+            const archive = adminContests.filter(contest => contest.status === 'finished');
+            const archiveHtml = archive.length ? archive.map(contest => {
+                const winners = contest.winners?.length ? contest.winners.map(winner => `
+                    <div class="flex justify-between items-center py-2 border-b border-gray-900 last:border-0"><div><b>${winner.place} место · ${escapeHtml(winner.firstName || 'Пользователь')}</b><p class="text-[10px] mt-1">${telegramAccountLink(winner)} · ${winner.telegramId}</p></div><b>${winner.invited}</b></div>`).join('') : '<p class="text-xs text-gray-600">Победителей нет</p>';
+                return `<div class="order-card mb-3"><div class="flex justify-between gap-3"><div><b>${escapeHtml(contest.title)}</b><p class="text-[10px] text-gray-600 mt-1">${formatOrderDate(Number(contest.ended_at) * 1000)}</p></div><span class="text-xs text-gray-500">${contest.invites || 0} приглашений</span></div><div class="mt-3">${winners}</div><button data-action="contest-to-broadcast" data-contest-id="${contest.id}" class="w-full bg-[#1b2332] py-2.5 rounded-xl text-xs font-bold mt-3">Подготовить рассылку с итогами</button></div>`;
+            }).join('') : '<div class="empty-state">Завершённых конкурсов пока нет</div>';
+            content.innerHTML = `${activeHtml}<h3 class="font-bold mb-3">Архив конкурсов</h3>${archiveHtml}`;
+        }
+
+        async function refreshContests() {
+            const data = await apiRequest('/admin/contests');
+            adminContests = data.contests || [];
+            adminActiveContest = data.active || null;
+            if (currentAdminTab === 'contest') renderAdminContest();
+        }
+
+        async function startAdminContest() {
+            const title = adminContestTitle.trim() || 'Реферальный конкурс';
+            if (!confirm(`Запустить конкурс «${title}»? С этого момента начнётся учёт новых приглашений.`)) return;
+            try {
+                await apiRequest('/admin/contests', {
+                    method: 'POST',
+                    body: JSON.stringify({ title })
+                });
+                await refreshContests();
+            } catch (error) {
+                alert('Не удалось запустить конкурс: ' + error.message);
+            }
+        }
+
+        async function finishAdminContest(contestId) {
+            if (!confirm('Завершить конкурс и зафиксировать трёх победителей? Результат больше не изменится.')) return;
+            try {
+                const data = await apiRequest(`/admin/contests/${contestId}/finish`, { method: 'POST' });
+                await refreshContests();
+                alert(data.winners?.length ? `Конкурс завершён. Победителей: ${data.winners.length}.` : 'Конкурс завершён, но участников не было.');
+            } catch (error) {
+                alert('Не удалось завершить конкурс: ' + error.message);
+            }
+        }
+
+        function prepareContestBroadcast(contestId) {
+            const contest = adminContests.find(item => String(item.id) === String(contestId));
+            if (!contest?.winners?.length) {
+                alert('В этом конкурсе нет победителей.');
+                return;
+            }
+            adminBroadcastText = `🏆 Итоги конкурса «${contest.title}»!\n\n` + contest.winners.map(winner =>
+                `${winner.place} место — ${winner.firstName}${winner.username ? ` (@${winner.username})` : ''}: ${winner.invited} приглашений`
+            ).join('\n') + '\n\nПоздравляем победителей!';
+            currentAdminTab = 'broadcast';
+            renderAdminPanel();
+        }
+
+        function getOrderMessagePreview() {
+            const values = {
+                code: 'WK-TEST1234',
+                items: '• Waka ×1 (Кислое яблоко)',
+                total: '2500',
+                phone: '+996 555 000 000',
+                address: 'Тестовый адрес',
+                manager: 'zynkwaka',
+                channel: 'WAKAZYNK',
+                name: 'Покупатель'
+            };
+            return Object.entries(values).reduce(
+                (text, [key, value]) => text.replaceAll(`{${key}}`, value),
+                adminOrderMessageTemplate
+            );
+        }
+
+        function renderOrderMessagePreview() {
+            const preview = document.getElementById('admin-order-message-preview');
+            if (preview) preview.innerText = getOrderMessagePreview();
+            const counter = document.getElementById('order-message-char-count');
+            if (counter) counter.innerText = `${adminOrderMessageTemplate.length}/3500`;
+        }
+
+        function renderAdminPaymentSettings() {
+            const content = document.getElementById('admin-content');
+            const fields = [
+                ['code', 'Код заказа'],
+                ['items', 'Товары'],
+                ['total', 'Сумма'],
+                ['name', 'Имя'],
+                ['phone', 'Телефон'],
+                ['address', 'Адрес'],
+                ['manager', 'Менеджер'],
+                ['channel', 'Канал']
+            ];
+            content.innerHTML = `
+                <div class="order-card mb-4">
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-qrcode text-purple-400"></i><h3 class="font-black">QR для оплаты</h3></div>
+                    <div class="bg-white rounded-2xl p-3 mt-4 flex items-center justify-center min-h-48">
+                        ${adminOrderQrUrl ? `<img src="${escapeHtml(adminOrderQrUrl)}" class="max-h-72 rounded-xl object-contain">` : '<p class="text-gray-500 text-sm">QR ещё не загружен</p>'}
+                    </div>
+                    <label class="block w-full bg-purple-600 text-center py-3 rounded-xl font-bold text-sm cursor-pointer mt-4">
+                        <i class="fa-solid fa-image mr-2"></i>Выбрать новый QR из галереи
+                        <input type="file" accept="image/jpeg,image/png,image/webp" data-action="order-qr-upload" class="hidden">
+                    </label>
+                    <p class="text-[10px] text-gray-600 mt-2">После загрузки новый QR сразу применяется ко всем следующим заказам.</p>
+                </div>
+                <div class="order-card mb-4">
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-message text-blue-400"></i><h3 class="font-black">Текст после заказа</h3></div>
+                    <p class="text-xs text-gray-500 mt-2">Нажмите на переменную, чтобы вставить её в текст.</p>
+                    <div class="flex flex-wrap gap-2 mt-3">${fields.map(([field, label]) => `<button data-action="order-template-field" data-field="${field}" class="bg-[#1b2332] border border-gray-800 px-2.5 py-1.5 rounded-lg text-[10px] font-bold">{${field}} · ${label}</button>`).join('')}</div>
+                    <textarea id="admin-order-message-template" maxlength="3500" rows="13" class="w-full bg-[#0b0e14] border border-gray-800 rounded-2xl p-4 text-sm outline-none focus:border-purple-500 mt-4 resize-none">${escapeHtml(adminOrderMessageTemplate)}</textarea>
+                    <div class="flex justify-between mt-2"><span class="text-[10px] text-gray-600">Не удаляйте фигурные скобки у переменных</span><span id="order-message-char-count" class="text-[10px] text-gray-600">${adminOrderMessageTemplate.length}/3500</span></div>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button data-action="order-template-reset" class="bg-[#1b2332] py-3 rounded-xl text-sm font-bold">Вернуть стандартный</button>
+                        <button data-action="order-settings-save" class="bg-emerald-600 py-3 rounded-xl text-sm font-bold">Сохранить текст</button>
+                    </div>
+                    <button data-action="order-settings-test" class="w-full bg-purple-600 py-3 rounded-xl text-sm font-bold mt-2">Отправить тест мне в Telegram</button>
+                </div>
+                <div class="order-card">
+                    <p class="text-xs text-gray-500 mb-3">Предпросмотр</p>
+                    <div id="admin-order-message-preview" class="bg-[#0b0e14] rounded-2xl p-4 text-sm whitespace-pre-wrap"></div>
+                </div>`;
+            renderOrderMessagePreview();
+        }
+
+        function insertOrderTemplateField(field) {
+            const textarea = document.getElementById('admin-order-message-template');
+            if (!textarea) return;
+            const token = `{${field}}`;
+            const start = textarea.selectionStart ?? adminOrderMessageTemplate.length;
+            const end = textarea.selectionEnd ?? start;
+            adminOrderMessageTemplate =
+                adminOrderMessageTemplate.slice(0, start)
+                + token
+                + adminOrderMessageTemplate.slice(end);
+            textarea.value = adminOrderMessageTemplate;
+            textarea.focus();
+            textarea.setSelectionRange(start + token.length, start + token.length);
+            renderOrderMessagePreview();
+        }
+
+        async function saveAdminOrderSettings(showSuccess = true) {
+            try {
+                await apiRequest('/admin/order-settings', {
+                    method: 'PUT',
+                    body: JSON.stringify({ message_template: adminOrderMessageTemplate })
+                });
+                if (showSuccess) {
+                    alert('Текст сохранён. Следующие заказы получат новое сообщение.');
+                }
+                return true;
+            } catch (error) {
+                alert('Не удалось сохранить текст: ' + error.message);
+                return false;
+            }
+        }
+
+        async function uploadAdminOrderQr(file) {
+            const form = new FormData();
+            form.append('file', file);
+            form.append('init_data', tg.initData || '');
+            try {
+                const data = await apiRequest('/admin/order-settings/qr', {
+                    method: 'POST',
+                    body: form
+                });
+                adminOrderQrUrl = data.qrUrl || '';
+                renderAdminPaymentSettings();
+                alert('Новый QR загружен и уже используется.');
+            } catch (error) {
+                alert('Не удалось загрузить QR: ' + error.message);
+            }
+        }
+
+        async function testAdminOrderSettings() {
+            try {
+                if (!await saveAdminOrderSettings(false)) return;
+                await apiRequest('/admin/order-settings/test', { method: 'POST' });
+                alert('Тестовое сообщение отправлено вам в Telegram.');
+            } catch (error) {
+                alert('Не удалось отправить тест: ' + error.message);
+            }
         }
 
         function renderAdminPanel() {
@@ -1364,13 +1804,22 @@
             if (currentAdminTab === 'stats') renderAdminAnalytics();
             if (currentAdminTab === 'products') renderAdminProductsEditor();
             if (currentAdminTab === 'users') renderAdminUsers();
+            if (currentAdminTab === 'broadcast') renderAdminBroadcast();
+            if (currentAdminTab === 'contest') renderAdminContest();
+            if (currentAdminTab === 'payment') renderAdminPaymentSettings();
         }
 
         function renderAdminProductsEditor() {
             const content = document.getElementById('admin-content');
             if (!content) return;
 
+            const lowStockHtml = adminLowStock.length ? `
+                <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 mb-4">
+                    <div class="flex items-center gap-2 text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i><b class="text-sm">Заканчиваются вкусы: ${adminLowStock.length}</b></div>
+                    <div class="mt-3 space-y-2">${adminLowStock.slice(0, 12).map(item => `<div class="flex justify-between gap-3 text-xs"><span>${escapeHtml(item.product)} · ${escapeHtml(item.flavor)}</span><b>${item.stock} шт.</b></div>`).join('')}</div>
+                </div>` : '';
             let html = `
+                ${lowStockHtml}
                 <div class="flex justify-between items-center mb-5">
                     <h3 class="font-bold text-lg">Товары</h3>
                     <button type="button" data-action="add-product" class="bg-purple-600 px-4 py-2 rounded-xl text-sm font-bold">+ Товар</button>
@@ -1462,6 +1911,8 @@
                 if (!button) return;
                 currentAdminTab = button.dataset.adminTab;
                 renderAdminPanel();
+                if (currentAdminTab === 'contest') refreshContests().catch(() => {});
+                if (currentAdminTab === 'broadcast') refreshBroadcasts();
             });
 
             document.getElementById('admin-content')?.addEventListener('click', (e) => {
@@ -1481,6 +1932,28 @@
                 if (action === 'add-flavor') addFlavor(pIndex);
                 if (action === 'delete-flavor') deleteFlavor(pIndex, fIndex);
                 if (action === 'save-changes') saveAdminChanges();
+                if (action === 'user-details') {
+                    selectedAdminUserId = btn.dataset.userId;
+                    renderAdminUsers();
+                }
+                if (action === 'user-back') {
+                    selectedAdminUserId = null;
+                    renderAdminUsers();
+                }
+                if (action === 'bonus-add') adjustAdminUserBonus(btn.dataset.userId, 1);
+                if (action === 'bonus-subtract') adjustAdminUserBonus(btn.dataset.userId, -1);
+                if (action === 'broadcast-test') sendAdminBroadcast(true);
+                if (action === 'broadcast-send') sendAdminBroadcast(false);
+                if (action === 'contest-start') startAdminContest();
+                if (action === 'contest-finish') finishAdminContest(btn.dataset.contestId);
+                if (action === 'contest-to-broadcast') prepareContestBroadcast(btn.dataset.contestId);
+                if (action === 'order-template-field') insertOrderTemplateField(btn.dataset.field);
+                if (action === 'order-template-reset') {
+                    adminOrderMessageTemplate = adminDefaultOrderMessageTemplate;
+                    renderAdminPaymentSettings();
+                }
+                if (action === 'order-settings-save') saveAdminOrderSettings();
+                if (action === 'order-settings-test') testAdminOrderSettings();
             });
 
             document.getElementById('admin-content')?.addEventListener('change', async (e) => {
@@ -1496,6 +1969,7 @@
                 if (action === 'product-cost') updateProductCost(pIndex, el.value);
                 if (action === 'product-image') updateProductImage(pIndex, el.value);
                 if (action === 'product-upload' && el.files?.[0]) uploadProductImage(pIndex, el.files[0]);
+                if (action === 'order-qr-upload' && el.files?.[0]) uploadAdminOrderQr(el.files[0]);
                 if (action === 'product-status') updateProductStatus(pIndex, el.value);
                 if (action === 'flavor-name') updateFlavorName(pIndex, fIndex, el.value);
                 if (action === 'flavor-stock') updateFlavorStock(pIndex, fIndex, el.value);
@@ -1515,13 +1989,34 @@
             });
 
             document.getElementById('admin-content')?.addEventListener('input', (e) => {
-                if (e.target.id !== 'admin-order-search') return;
-                adminOrderSearch = e.target.value;
-                const cursorPosition = e.target.selectionStart;
-                renderAdminOrders();
-                const input = document.getElementById('admin-order-search');
-                input?.focus();
-                input?.setSelectionRange(cursorPosition, cursorPosition);
+                if (e.target.id === 'admin-order-search') {
+                    adminOrderSearch = e.target.value;
+                    const cursorPosition = e.target.selectionStart;
+                    renderAdminOrders();
+                    const input = document.getElementById('admin-order-search');
+                    input?.focus();
+                    input?.setSelectionRange(cursorPosition, cursorPosition);
+                }
+                if (e.target.id === 'admin-user-search') {
+                    adminUserSearch = e.target.value;
+                    const cursorPosition = e.target.selectionStart;
+                    renderAdminUsers();
+                    const input = document.getElementById('admin-user-search');
+                    input?.focus();
+                    input?.setSelectionRange(cursorPosition, cursorPosition);
+                }
+                if (e.target.id === 'admin-broadcast-message') {
+                    adminBroadcastText = e.target.value;
+                    const counter = document.getElementById('broadcast-char-count');
+                    if (counter) counter.innerText = `${adminBroadcastText.length}/4000`;
+                }
+                if (e.target.id === 'admin-contest-title') {
+                    adminContestTitle = e.target.value;
+                }
+                if (e.target.id === 'admin-order-message-template') {
+                    adminOrderMessageTemplate = e.target.value;
+                    renderOrderMessagePreview();
+                }
             });
         }
 
